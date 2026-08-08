@@ -1,0 +1,55 @@
+"""과제에서 요구한 로컬 Git 이력과 clone/pull 증거를 검증한다."""
+
+from pathlib import Path
+import subprocess
+import sys
+
+
+ROOT = Path(__file__).resolve().parents[1]
+CLONE_LOG = ROOT / "docs" / "evidence" / "logs" / "clone-pull.txt"
+
+
+def git(*arguments: str) -> str:
+    return subprocess.check_output(
+        ["git", *arguments], cwd=ROOT, text=True, stderr=subprocess.STDOUT
+    ).strip()
+
+
+def fail(message: str, pending: bool = False) -> int:
+    status = "PENDING" if pending else "FAIL"
+    print(f"verify-git: {status} - {message}")
+    return 1
+
+
+def main() -> int:
+    try:
+        count = int(git("rev-list", "--count", "HEAD"))
+        if count < 10:
+            return fail(f"커밋이 {count}개입니다. 10개 이상이어야 합니다.")
+
+        merges = git("log", "--merges", "--pretty=%s")
+        if "feature/play-quiz" not in merges:
+            return fail("feature/play-quiz 병합 커밋을 찾지 못했습니다.")
+
+        parents = git("rev-list", "--parents", "--merges", "HEAD")
+        if not any(len(line.split()) >= 3 for line in parents.splitlines()):
+            return fail("두 부모를 가진 no-ff 병합 커밋이 없습니다.")
+    except (OSError, subprocess.CalledProcessError, ValueError) as error:
+        return fail(f"Git 이력을 읽지 못했습니다: {error}")
+
+    if not CLONE_LOG.exists():
+        return fail("clone/push/pull 실습 로그가 아직 없습니다.", pending=True)
+
+    log = CLONE_LOG.read_text(encoding="utf-8")
+    required = ("git clone", "git push", "git pull", "RESULT: PASS")
+    missing = [command for command in required if command not in log]
+    if missing:
+        return fail(f"실습 로그에 다음 표식이 없습니다: {', '.join(missing)}")
+
+    print(f"커밋 {count}개, no-ff 병합, clone/push/pull 증거: PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
