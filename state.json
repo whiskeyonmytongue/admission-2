@@ -1,0 +1,37 @@
+{
+  "quizzes": [
+    {
+      "question": "Python에서 여러 값을 순서대로 저장하는 자료형은?",
+      "choices": ["int", "list", "bool", "float"],
+      "answer": 2,
+      "hint": "대괄호([])로 표현하는 자료형입니다."
+    },
+    {
+      "question": "조건이 참일 때만 코드를 실행하는 키워드는?",
+      "choices": ["if", "for", "def", "import"],
+      "answer": 1,
+      "hint": "조건문을 시작하는 두 글자 키워드입니다."
+    },
+    {
+      "question": "정해진 범위를 반복할 때 주로 사용하는 문장은?",
+      "choices": ["try", "class", "return", "for"],
+      "answer": 4,
+      "hint": "컬렉션의 각 항목을 순회할 때 사용합니다."
+    },
+    {
+      "question": "함수를 정의할 때 사용하는 키워드는?",
+      "choices": ["func", "def", "make", "lambda only"],
+      "answer": 2,
+      "hint": "define의 앞 세 글자를 떠올려 보세요."
+    },
+    {
+      "question": "키와 값을 한 쌍으로 저장하는 자료형은?",
+      "choices": ["tuple", "set", "dict", "str"],
+      "answer": 3,
+      "hint": "dictionary의 줄임말입니다."
+    }
+  ],
+  "best_score": null,
+  "best_result": null,
+  "history": []
+}
