@@ -163,13 +163,17 @@ make verify-remote
 브랜치는 아직 완성되지 않은 기능을 `main`과 분리해 작업하고 검증할 수 있게
 합니다. 병합은 분리된 이력을 한 기준 브랜치에 합치는 작업입니다.
 
+이 문단은 GitHub에서 별도 clone한 작업 디렉터리에서 추가해 push한 뒤, 최초
+작업 디렉터리에서 `git pull --ff-only`로 받아왔습니다. 따라서 아래 로그는 명령
+설명만 적은 예시가 아니라 두 작업 디렉터리 사이의 실제 왕복 기록입니다.
+
 실제 확인 자료:
 
 - [개발 환경 로그](docs/evidence/logs/environment.txt)
 - [추가·목록·플레이·점수 실행 로그](docs/evidence/logs/app-workflow.txt)
 - [브랜치 병합 그래프](docs/evidence/logs/git-history.txt)
 - [자동 테스트와 검증 결과](docs/evidence/logs/verification.txt)
-- `clone → commit → push → pull` 로그: 원격 저장소 공개 후 생성
+- [clone → commit → push → pull 로그](docs/evidence/logs/clone-pull.txt)
 
 ## 실제 실행 화면
 
