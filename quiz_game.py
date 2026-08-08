@@ -244,6 +244,17 @@ class QuizGame:
             self.best_score = score
             self.best_result = {"correct": correct, "total": total}
             self.output("🎉 새로운 최고 점수입니다!")
+        self.history.append(
+            {
+                "played_at": datetime.now(timezone.utc)
+                .isoformat(timespec="seconds")
+                .replace("+00:00", "Z"),
+                "total": total,
+                "correct": correct,
+                "score": score,
+                "hints_used": hints_used,
+            }
+        )
         self.save_state()
 
     def read_yes_no(self, prompt: str) -> bool:
@@ -298,6 +309,25 @@ class QuizGame:
         else:
             self.quizzes.insert(number - 1, deleted)
             self.output("⚠️ 저장에 실패해 삭제를 취소했습니다.")
+
+    def show_score(self) -> None:
+        """최고 점수와 ISO 시각이 포함된 전체 플레이 기록을 출력한다."""
+        if self.best_score is None or self.best_result is None:
+            self.output("🏆 아직 플레이 기록이 없습니다.")
+            return
+
+        self.output(
+            f"\n🏆 최고 점수: {self.best_score}점 "
+            f"({self.best_result['total']}문제 중 "
+            f"{self.best_result['correct']}문제 정답)"
+        )
+        self.output(f"📚 플레이 기록 (총 {len(self.history)}회)")
+        for number, record in enumerate(self.history, start=1):
+            self.output(
+                f"{number}. {record['played_at']} | "
+                f"{record['correct']}/{record['total']} 정답 | "
+                f"{record['score']}점 | 힌트 {record.get('hints_used', 0)}회"
+            )
 
     def show_menu(self) -> None:
         self.output("\n" + "=" * 42)
