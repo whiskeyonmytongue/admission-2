@@ -1,0 +1,12 @@
+$ python3 --version
+Python 3.13.13
+
+$ git --version
+git version 2.50.1 (Apple Git-155)
+
+$ git config --local --get user.name
+whiskeyonmytongue
+
+$ git config --local --get user.email
+whiskeyonmytongue@users.noreply.github.com
+

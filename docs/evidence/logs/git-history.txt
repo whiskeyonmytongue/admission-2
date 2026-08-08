@@ -1,0 +1,19 @@
+$ git log --oneline --graph --decorate --all
+* e171ea5 (HEAD -> main) Build: 로컬 Git 원격 검증 Make 타깃 추가
+* 502471f Test: 상태 복구 입력 경계와 보너스 동작 검증
+* 6659e85 Feat: 최고 점수와 ISO 시각별 플레이 기록 저장
+* a43168d Feat: 퀴즈 추가 목록 삭제와 즉시 저장 구현
+*   61a6736 Merge: feature/play-quiz 퀴즈 풀이 기능 병합
+|\
+| * 977fc5b (feature/play-quiz) Feat: 랜덤 출제 문제 수 선택과 힌트 감점 추가
+| * ec6cec8 Feat: 브랜치에서 퀴즈 출제와 채점 구현
+|/
+* 6aa0253 Feat: 메뉴 입력 검증과 안전 종료 흐름 추가
+* 8c6cf7c Feat: JSON 상태의 원자적 저장과 손상 복구 구현
+* 62d56cd Feat: Python 기초 기본 퀴즈 5개 추가
+* 48b6503 Feat: Quiz 모델과 입력 데이터 검증 구현
+* 09c6cc4 Chore: 프로젝트 저장소 기본 구조 설정
+
+두 부모를 가진 `61a6736` 커밋이 `feature/play-quiz`를 `main`에
+`--no-ff` 방식으로 병합한 기록이다.
+
