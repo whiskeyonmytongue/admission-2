@@ -67,6 +67,32 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         json.loads(self.state_path.read_text(encoding="utf-8"))
 
+    def test_wrong_field_types_are_treated_as_corrupt_state(self) -> None:
+        self.state_path.write_text(
+            json.dumps(
+                {
+                    "quizzes": [
+                        {
+                            "question": 123,
+                            "choices": ["A", "B", "C", "D"],
+                            "answer": 1,
+                        }
+                    ],
+                    "best_score": None,
+                    "best_result": None,
+                    "history": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        game = self.make_game()
+
+        self.assertEqual(len(game.quizzes), 5)
+        self.assertEqual(
+            len(list(self.state_path.parent.glob("state.json.corrupt-*.bak"))), 1
+        )
+
     def test_read_int_retries_blank_text_and_out_of_range(self) -> None:
         game = self.make_game(["", "abc", "9", " 2 "])
 

@@ -17,6 +17,12 @@ class Quiz:
         answer: int,
         hint: str = "",
     ) -> None:
+        if not isinstance(question, str) or not isinstance(hint, str):
+            raise ValueError("문제와 힌트는 문자열이어야 합니다.")
+        if not isinstance(choices, list) or any(
+            not isinstance(choice, str) for choice in choices
+        ):
+            raise ValueError("선택지는 문자열 배열이어야 합니다.")
         question = question.strip()
         choices = [choice.strip() for choice in choices]
         hint = hint.strip()

@@ -25,6 +25,14 @@ class QuizTest(unittest.TestCase):
             Quiz("질문", valid_choices, 0)
         with self.assertRaises(ValueError):
             Quiz("질문", valid_choices, True)
+        with self.assertRaises(ValueError):
+            Quiz.from_dict(
+                {"question": 123, "choices": valid_choices, "answer": 1}
+            )
+        with self.assertRaises(ValueError):
+            Quiz.from_dict(
+                {"question": "질문", "choices": [1, 2, 3, 4], "answer": 1}
+            )
 
     def test_display_lines_contains_numbered_choices(self) -> None:
         quiz = Quiz("질문", ["A", "B", "C", "D"], 1)
@@ -36,4 +44,3 @@ class QuizTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
