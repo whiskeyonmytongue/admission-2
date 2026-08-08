@@ -256,6 +256,49 @@ class QuizGame:
                 return True
             self.output("⚠️ y 또는 n으로 입력하세요.")
 
+    def read_nonempty(self, prompt: str) -> str:
+        while True:
+            value = self.input(prompt).strip()
+            if value:
+                return value
+            self.output("⚠️ 빈 값은 입력할 수 없습니다.")
+
+    def add_quiz(self) -> None:
+        """문제와 선택지를 입력받아 즉시 상태 파일에 추가한다."""
+        self.output("\n📌 새로운 퀴즈를 추가합니다.")
+        question = self.read_nonempty("문제: ")
+        choices = [
+            self.read_nonempty(f"선택지 {number}: ") for number in range(1, 5)
+        ]
+        answer = self.read_int("정답 번호 (1~4): ", 1, 4)
+        hint = self.input("힌트 (생략 가능): ").strip()
+        self.quizzes.append(Quiz(question, choices, answer, hint))
+        if self.save_state():
+            self.output("✅ 퀴즈가 추가되고 저장되었습니다.")
+
+    def list_quizzes(self) -> None:
+        """정답을 노출하지 않고 등록된 문제 제목을 보여 준다."""
+        if not self.quizzes:
+            self.output("⚠️ 등록된 퀴즈가 없습니다.")
+            return
+        self.output(f"\n📋 등록된 퀴즈 목록 (총 {len(self.quizzes)}개)")
+        for number, quiz in enumerate(self.quizzes, start=1):
+            self.output(f"{number}. {quiz.question}")
+
+    def delete_quiz(self) -> None:
+        """선택한 문제를 삭제하고 성공 여부를 즉시 저장한다."""
+        if not self.quizzes:
+            self.output("⚠️ 삭제할 퀴즈가 없습니다.")
+            return
+        self.list_quizzes()
+        number = self.read_int("삭제할 문제 번호: ", 1, len(self.quizzes))
+        deleted = self.quizzes.pop(number - 1)
+        if self.save_state():
+            self.output(f"🗑️ '{deleted.question}' 퀴즈를 삭제했습니다.")
+        else:
+            self.quizzes.insert(number - 1, deleted)
+            self.output("⚠️ 저장에 실패해 삭제를 취소했습니다.")
+
     def show_menu(self) -> None:
         self.output("\n" + "=" * 42)
         self.output("          Python 기초 퀴즈")
