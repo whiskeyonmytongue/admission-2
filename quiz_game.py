@@ -201,18 +201,28 @@ class QuizGame:
             self.output(f"⚠️ {minimum}부터 {maximum} 사이의 숫자를 입력하세요.")
 
     def play_quiz(self) -> None:
-        """저장된 전체 문제를 출제하고 최고 점수를 갱신한다."""
+        """문제 수를 선택해 무작위로 풀고 힌트 감점을 반영한다."""
         if not self.quizzes:
             self.output("⚠️ 등록된 퀴즈가 없습니다. 먼저 퀴즈를 추가해 주세요.")
             return
 
+        count = self.read_int(
+            f"풀 문제 수 (1~{len(self.quizzes)}): ", 1, len(self.quizzes)
+        )
         selected = list(self.quizzes)
+        self.rng.shuffle(selected)
+        selected = selected[:count]
         correct = 0
+        hints_used = 0
         self.output(f"\n📝 퀴즈를 시작합니다. (총 {len(selected)}문제)")
         for number, quiz in enumerate(selected, start=1):
             self.output("\n" + "-" * 42)
             for line in quiz.display_lines(number):
                 self.output(line)
+            if self.read_yes_no("힌트를 볼까요? (y/N): "):
+                hints_used += 1
+                hint = quiz.hint or "등록된 힌트가 없습니다."
+                self.output(f"💡 힌트: {hint} (-10점)")
             answer = self.read_int("정답 입력 (1~4): ", 1, 4)
             if quiz.is_correct(answer):
                 correct += 1
@@ -221,15 +231,30 @@ class QuizGame:
                 self.output(f"❌ 오답입니다. 정답은 {quiz.answer}번입니다.")
 
         total = len(selected)
-        score = round(correct / total * 100)
+        base_score = round(correct / total * 100)
+        score = max(0, base_score - hints_used * 10)
         self.output("\n" + "=" * 42)
         self.output(f"🏆 결과: {total}문제 중 {correct}문제 정답 ({score}점)")
+        if hints_used:
+            self.output(
+                f"   기본 {base_score}점 - 힌트 감점 {hints_used * 10}점"
+            )
 
         if self.best_score is None or score > self.best_score:
             self.best_score = score
             self.best_result = {"correct": correct, "total": total}
             self.output("🎉 새로운 최고 점수입니다!")
         self.save_state()
+
+    def read_yes_no(self, prompt: str) -> bool:
+        """빈 입력은 아니요로 처리하고 y/n만 다시 받는다."""
+        while True:
+            answer = self.input(prompt).strip().lower()
+            if answer in ("", "n", "no"):
+                return False
+            if answer in ("y", "yes"):
+                return True
+            self.output("⚠️ y 또는 n으로 입력하세요.")
 
     def show_menu(self) -> None:
         self.output("\n" + "=" * 42)
