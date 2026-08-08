@@ -16,7 +16,8 @@ python3 scripts/verify_git.py
 커밋 18개, no-ff 병합, clone/push/pull 증거: PASS
 
 $ make verify-remote
-verify-remote: PENDING - origin이 아직 설정되지 않았습니다.
+python3 scripts/verify_remote.py
+PUBLIC/main 및 HEAD 63964a8 일치: PASS
 
-`verify-remote`의 PENDING은 최초 로컬 구현 시점의 기록이다. 최종 문서 커밋을
-push한 뒤 다시 실행해 PUBLIC/main/HEAD 일치를 확인한다.
+위 원격 검증은 공개 저장소의 기본 브랜치와 당시 로컬 HEAD를 직접 조회했다.
+로그 반영 커밋을 push한 뒤 같은 명령을 한 번 더 실행해 최종 HEAD도 확인한다.
