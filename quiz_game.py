@@ -200,6 +200,37 @@ class QuizGame:
                 return value
             self.output(f"⚠️ {minimum}부터 {maximum} 사이의 숫자를 입력하세요.")
 
+    def play_quiz(self) -> None:
+        """저장된 전체 문제를 출제하고 최고 점수를 갱신한다."""
+        if not self.quizzes:
+            self.output("⚠️ 등록된 퀴즈가 없습니다. 먼저 퀴즈를 추가해 주세요.")
+            return
+
+        selected = list(self.quizzes)
+        correct = 0
+        self.output(f"\n📝 퀴즈를 시작합니다. (총 {len(selected)}문제)")
+        for number, quiz in enumerate(selected, start=1):
+            self.output("\n" + "-" * 42)
+            for line in quiz.display_lines(number):
+                self.output(line)
+            answer = self.read_int("정답 입력 (1~4): ", 1, 4)
+            if quiz.is_correct(answer):
+                correct += 1
+                self.output("✅ 정답입니다!")
+            else:
+                self.output(f"❌ 오답입니다. 정답은 {quiz.answer}번입니다.")
+
+        total = len(selected)
+        score = round(correct / total * 100)
+        self.output("\n" + "=" * 42)
+        self.output(f"🏆 결과: {total}문제 중 {correct}문제 정답 ({score}점)")
+
+        if self.best_score is None or score > self.best_score:
+            self.best_score = score
+            self.best_result = {"correct": correct, "total": total}
+            self.output("🎉 새로운 최고 점수입니다!")
+        self.save_state()
+
     def show_menu(self) -> None:
         self.output("\n" + "=" * 42)
         self.output("          Python 기초 퀴즈")
