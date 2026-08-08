@@ -1,5 +1,8 @@
-import json
+"""QuizGame의 상태·입력·종료 경계를 검증한다."""
+
 import io
+import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,7 +10,7 @@ from unittest.mock import patch
 
 import main as application
 from quiz import Quiz
-from quiz_game import QuizGame, StateAccessError
+from quiz_game import QuizGame, StateAccessError, calculate_score
 
 
 class StableRandom:
@@ -21,6 +24,7 @@ class QuizGameTest(unittest.TestCase):
         self.addCleanup(self.temporary_directory.cleanup)
         self.state_path = Path(self.temporary_directory.name) / "state.json"
         self.messages = []
+        self.errors = []
 
     def make_game(self, answers=()) -> QuizGame:
         answer_iterator = iter(answers)
@@ -28,8 +32,20 @@ class QuizGameTest(unittest.TestCase):
             state_path=self.state_path,
             input_fn=lambda _: next(answer_iterator),
             output_fn=self.messages.append,
+            error_fn=self.errors.append,
             rng=StableRandom(),
         )
+
+    def corrupt_backup_count(self) -> int:
+        return len(
+            list(self.state_path.parent.glob("state.json.corrupt-*.bak"))
+        )
+
+    def test_calculate_score_applies_penalty_and_floor(self) -> None:
+        self.assertEqual(calculate_score(4, 5, 1), (80, 70))
+        self.assertEqual(calculate_score(0, 2, 2), (0, 0))
+        with self.assertRaises(ValueError):
+            calculate_score(1, 0, 0)
 
     def test_missing_state_creates_five_default_quizzes(self) -> None:
         game = self.make_game()
@@ -60,14 +76,24 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(restored.best_score, 80)
         self.assertEqual(len(restored.history), 1)
 
+    def test_save_io_error_detail_is_written_to_stderr(self) -> None:
+        game = self.make_game()
+        self.errors.clear()
+
+        denied = PermissionError("denied")
+        with patch("quiz_game.os.replace", side_effect=denied):
+            self.assertFalse(game.save_state())
+
+        self.assertTrue(any("denied" in item for item in self.errors))
+        self.assertFalse(any("denied" in item for item in self.messages))
+
     def test_corrupt_state_is_backed_up_and_recovered(self) -> None:
         self.state_path.write_text("{not-json", encoding="utf-8")
 
         game = self.make_game()
 
         self.assertEqual(len(game.quizzes), 5)
-        backups = list(self.state_path.parent.glob("state.json.corrupt-*.bak"))
-        self.assertEqual(len(backups), 1)
+        self.assertEqual(self.corrupt_backup_count(), 1)
         json.loads(self.state_path.read_text(encoding="utf-8"))
 
     def test_wrong_field_types_are_treated_as_corrupt_state(self) -> None:
@@ -92,19 +118,16 @@ class QuizGameTest(unittest.TestCase):
         game = self.make_game()
 
         self.assertEqual(len(game.quizzes), 5)
-        self.assertEqual(
-            len(list(self.state_path.parent.glob("state.json.corrupt-*.bak"))), 1
-        )
+        self.assertEqual(self.corrupt_backup_count(), 1)
 
     def test_deeply_nested_json_is_backed_up_and_recovered(self) -> None:
-        self.state_path.write_text("[" * 2000 + "0" + "]" * 2000, encoding="utf-8")
+        nested_json = "[" * 2000 + "0" + "]" * 2000
+        self.state_path.write_text(nested_json, encoding="utf-8")
 
         game = self.make_game()
 
         self.assertEqual(len(game.quizzes), 5)
-        self.assertEqual(
-            len(list(self.state_path.parent.glob("state.json.corrupt-*.bak"))), 1
-        )
+        self.assertEqual(self.corrupt_backup_count(), 1)
 
     def test_backup_failure_preserves_corrupt_source(self) -> None:
         corrupt_source = "{not-json"
@@ -114,7 +137,8 @@ class QuizGameTest(unittest.TestCase):
             with self.assertRaises(StateAccessError):
                 self.make_game()
 
-        self.assertEqual(self.state_path.read_text(encoding="utf-8"), corrupt_source)
+        recovered = self.state_path.read_text(encoding="utf-8")
+        self.assertEqual(recovered, corrupt_source)
 
     def test_read_io_failure_does_not_replace_valid_source(self) -> None:
         source = '{"quizzes": []}'
@@ -142,9 +166,7 @@ class QuizGameTest(unittest.TestCase):
         game = self.make_game()
 
         self.assertIsNone(game.best_score)
-        self.assertEqual(
-            len(list(self.state_path.parent.glob("state.json.corrupt-*.bak"))), 1
-        )
+        self.assertEqual(self.corrupt_backup_count(), 1)
 
     def test_read_int_retries_blank_text_and_out_of_range(self) -> None:
         game = self.make_game(["", "abc", "9", " 2 "])
@@ -179,6 +201,16 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(len(game.quizzes), original_count)
         self.assertTrue(any("추가를 취소" in message for message in self.messages))
 
+    def test_delete_rolls_back_when_save_fails(self) -> None:
+        game = self.make_game(["1"])
+        original = list(game.quizzes)
+        game.save_state = lambda: False
+
+        game.delete_quiz()
+
+        self.assertEqual(game.quizzes, original)
+        self.assertTrue(any("삭제를 취소" in item for item in self.messages))
+
     def test_play_applies_hint_penalty_and_records_history(self) -> None:
         game = self.make_game(["1", "y", "1"])
         game.quizzes = [Quiz("정답은 1", ["A", "B", "C", "D"], 1, "A입니다")]
@@ -191,6 +223,16 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(game.history[0]["hints_used"], 1)
         self.assertTrue(game.history[0]["played_at"].endswith("Z"))
 
+    def test_empty_hint_does_not_reduce_score_or_usage_count(self) -> None:
+        game = self.make_game(["1", "y", "1"])
+        game.quizzes = [Quiz("정답은 1", ["A", "B", "C", "D"], 1)]
+
+        game.play_quiz()
+
+        self.assertEqual(game.best_score, 100)
+        self.assertEqual(game.history[0]["hints_used"], 0)
+        self.assertTrue(any("감점 없음" in item for item in self.messages))
+
     def test_play_rolls_back_score_when_save_fails(self) -> None:
         game = self.make_game(["1", "n", "1"])
         game.quizzes = [Quiz("정답은 1", ["A", "B", "C", "D"], 1)]
@@ -201,7 +243,9 @@ class QuizGameTest(unittest.TestCase):
         self.assertIsNone(game.best_score)
         self.assertIsNone(game.best_result)
         self.assertEqual(game.history, [])
-        self.assertTrue(any("기록을 반영하지 않았습니다" in item for item in self.messages))
+        self.assertTrue(
+            any("기록을 반영하지 않았습니다" in item for item in self.messages)
+        )
 
     def test_play_and_score_handle_empty_or_unplayed_state(self) -> None:
         game = self.make_game()
@@ -221,20 +265,86 @@ class QuizGameTest(unittest.TestCase):
             state_path=self.state_path,
             input_fn=raise_eof,
             output_fn=self.messages.append,
+            error_fn=self.errors.append,
         )
 
-        result = game.run()
+        with patch.object(game, "save_state", wraps=game.save_state) as save:
+            result = game.run()
 
         self.assertEqual(result, 0)
+        save.assert_called_once_with()
         self.assertTrue(self.state_path.exists())
         self.assertTrue(any("입력이 중단" in item for item in self.messages))
+
+    def test_keyboard_interrupt_saves_and_exits(self) -> None:
+        def raise_interrupt(_: str) -> str:
+            raise KeyboardInterrupt
+
+        game = QuizGame(
+            state_path=self.state_path,
+            input_fn=raise_interrupt,
+            output_fn=self.messages.append,
+            error_fn=self.errors.append,
+        )
+
+        with patch.object(game, "save_state", wraps=game.save_state) as save:
+            self.assertEqual(game.run(), 0)
+
+        save.assert_called_once_with()
+        self.assertTrue(self.state_path.exists())
+        self.assertEqual(self.errors, [])
+
+    def test_interrupted_exit_save_failure_returns_one_on_stderr(self) -> None:
+        def raise_eof(_: str) -> str:
+            raise EOFError
+
+        game = self.make_game()
+        game.input = raise_eof
+        game.save_state = lambda: False
+
+        self.assertEqual(game.run(), 1)
+        self.assertTrue(any("저장하지 못했습니다" in item for item in self.errors))
 
     def test_safe_exit_reports_save_failure(self) -> None:
         game = self.make_game()
         game.save_state = lambda: False
 
         self.assertFalse(game.safe_exit())
-        self.assertTrue(any("저장하지 못했습니다" in item for item in self.messages))
+        self.assertTrue(any("저장하지 못했습니다" in item for item in self.errors))
+
+    def test_default_state_path_is_stable_outside_project(self) -> None:
+        with tempfile.TemporaryDirectory() as external_directory:
+            original_directory = Path.cwd()
+            try:
+                os.chdir(external_directory)
+                with patch.dict(os.environ, {}, clear=True), patch(
+                    "main.QuizGame"
+                ) as game_class:
+                    game_class.return_value.run.return_value = 0
+                    result = application.main()
+            finally:
+                os.chdir(original_directory)
+
+        self.assertEqual(result, 0)
+        game_class.assert_called_once_with(
+            state_path=application.DEFAULT_STATE_PATH
+        )
+
+    def test_fatal_state_error_is_written_to_stderr(self) -> None:
+        standard_output = io.StringIO()
+        standard_error = io.StringIO()
+        with patch(
+            "main.QuizGame",
+            side_effect=StateAccessError("읽기 실패"),
+        ), patch("sys.stdout", standard_output), patch(
+            "sys.stderr",
+            standard_error,
+        ):
+            result = application.main()
+
+        self.assertEqual(result, 1)
+        self.assertEqual(standard_output.getvalue(), "")
+        self.assertIn("읽기 실패", standard_error.getvalue())
 
     def test_startup_interrupt_exits_without_traceback(self) -> None:
         captured = io.StringIO()

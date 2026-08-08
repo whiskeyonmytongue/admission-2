@@ -1,3 +1,5 @@
+"""Quiz 모델의 검증과 직렬화 동작을 검사한다."""
+
 import unittest
 
 from quiz import Quiz

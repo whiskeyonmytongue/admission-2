@@ -6,6 +6,7 @@ import json
 import os
 import random
 import shutil
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +20,31 @@ class StateAccessError(RuntimeError):
     """원본 상태를 안전하게 읽거나 보존할 수 없을 때 발생한다."""
 
 
+def _stderr_output(message: str) -> None:
+    """치명적 진단을 표준 오류로 출력한다."""
+    print(message, file=sys.stderr)
+
+
+def calculate_score(
+    correct: int,
+    total: int,
+    hints_used: int,
+) -> tuple[int, int]:
+    """정답과 유효한 힌트 수로 기본 점수와 최종 점수를 계산한다."""
+    values = (correct, total, hints_used)
+    if any(
+        isinstance(value, bool) or not isinstance(value, int)
+        for value in values
+    ):
+        raise ValueError("점수 계산 값은 정수여야 합니다.")
+    if total < 1 or correct < 0 or correct > total:
+        raise ValueError("전체 문제 수와 정답 수가 유효하지 않습니다.")
+    if hints_used < 0 or hints_used > total:
+        raise ValueError("힌트 사용 수가 유효하지 않습니다.")
+    base_score = round(correct / total * 100)
+    return base_score, max(0, base_score - hints_used * 10)
+
+
 class QuizGame:
     """퀴즈 목록과 점수를 불러오고 저장하는 게임 관리자."""
 
@@ -27,11 +53,14 @@ class QuizGame:
         state_path: str | Path = "state.json",
         input_fn: Callable[[str], str] = input,
         output_fn: Callable[[str], None] = print,
+        error_fn: Optional[Callable[[str], None]] = None,
         rng: random.Random | Any = random,
     ) -> None:
+        """저장 경로와 교체 가능한 입출력·난수 함수를 설정한다."""
         self.state_path = Path(state_path)
         self.input = input_fn
         self.output = output_fn
+        self.error = error_fn or _stderr_output
         self.rng = rng
         self.quizzes: List[Quiz] = []
         self.best_score: Optional[int] = None
@@ -62,7 +91,12 @@ class QuizGame:
             raise StateAccessError(
                 f"저장 파일을 읽지 못해 원본을 그대로 보존합니다: {error}"
             ) from error
-        except (json.JSONDecodeError, TypeError, ValueError, RecursionError) as error:
+        except (
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+            RecursionError,
+        ) as error:
             backup = self._backup_corrupt_state()
             if backup is None:
                 raise StateAccessError(
@@ -80,7 +114,11 @@ class QuizGame:
                 )
             return
 
-        score_text = "기록 없음" if self.best_score is None else f"{self.best_score}점"
+        score_text = (
+            "기록 없음"
+            if self.best_score is None
+            else f"{self.best_score}점"
+        )
         self.output(
             f"📂 저장된 데이터를 불러왔습니다. "
             f"(퀴즈 {len(self.quizzes)}개, 최고 점수 {score_text})"
@@ -113,12 +151,31 @@ class QuizGame:
         for record in history:
             self._validate_history_record(record)
 
+        self._validate_score_history(best_score, best_result, history)
+
+        self.quizzes = quizzes
+        self.best_score = best_score
+        self.best_result = best_result
+        self.history = history
+
+    @staticmethod
+    def _validate_score_history(
+        best_score: Any,
+        best_result: Any,
+        history: List[Dict[str, Any]],
+    ) -> None:
+        """최고 점수와 전체 플레이 기록의 교차 필드를 검증한다."""
         if (best_score is None) != (best_result is None):
-            raise ValueError("best_score와 best_result는 함께 존재하거나 함께 비어야 합니다.")
+            raise ValueError(
+                "best_score와 best_result는 함께 존재하거나 함께 비어야 합니다."
+            )
         if history and best_score is None:
             raise ValueError("플레이 기록이 있으면 최고 점수도 있어야 합니다.")
         if best_score is not None and best_result is not None:
-            if not history or best_score != max(record["score"] for record in history):
+            if not history:
+                raise ValueError("최고 점수가 플레이 기록과 일치하지 않습니다.")
+            history_best = max(record["score"] for record in history)
+            if best_score != history_best:
                 raise ValueError("최고 점수가 플레이 기록과 일치하지 않습니다.")
             if not any(
                 record["score"] == best_score
@@ -128,25 +185,26 @@ class QuizGame:
             ):
                 raise ValueError("최고 점수의 정답 기록이 history에 없습니다.")
 
-        self.quizzes = quizzes
-        self.best_score = best_score
-        self.best_result = best_result
-        self.history = history
-
     @staticmethod
     def _validate_result(result: Any) -> None:
         if not isinstance(result, dict):
             raise ValueError("best_result는 객체여야 합니다.")
         correct = result.get("correct")
         total = result.get("total")
-        if any(isinstance(value, bool) or not isinstance(value, int) for value in (correct, total)):
+        if any(
+            isinstance(value, bool) or not isinstance(value, int)
+            for value in (correct, total)
+        ):
             raise ValueError("best_result의 값은 정수여야 합니다.")
         if total < 1 or correct < 0 or correct > total:
             raise ValueError("best_result의 정답 수가 유효하지 않습니다.")
 
     @classmethod
     def _validate_history_record(cls, record: Any) -> None:
-        if not isinstance(record, dict) or not isinstance(record.get("played_at"), str):
+        if not isinstance(record, dict) or not isinstance(
+            record.get("played_at"),
+            str,
+        ):
             raise ValueError("history 항목 형식이 올바르지 않습니다.")
         timestamp = record["played_at"]
         normalized_timestamp = (
@@ -155,7 +213,9 @@ class QuizGame:
         try:
             parsed_timestamp = datetime.fromisoformat(normalized_timestamp)
         except ValueError as error:
-            raise ValueError("history의 played_at은 ISO 8601 시각이어야 합니다.") from error
+            raise ValueError(
+                "history의 played_at은 ISO 8601 시각이어야 합니다."
+            ) from error
         if parsed_timestamp.tzinfo is None:
             raise ValueError("history의 played_at에는 시간대가 있어야 합니다.")
         cls._validate_result(record)
@@ -171,14 +231,16 @@ class QuizGame:
             or hints_used > record["total"]
         ):
             raise ValueError("history의 점수 또는 힌트 수가 유효하지 않습니다.")
-        expected_score = max(
-            0,
-            round(record["correct"] / record["total"] * 100) - hints_used * 10,
+        _, expected_score = calculate_score(
+            record["correct"],
+            record["total"],
+            hints_used,
         )
         if score != expected_score:
             raise ValueError("history의 점수가 정답 수와 힌트 감점에 맞지 않습니다.")
 
     def state_dict(self) -> Dict[str, Any]:
+        """현재 상태를 JSON 직렬화 가능한 딕셔너리로 반환한다."""
         return {
             "quizzes": [quiz.to_dict() for quiz in self.quizzes],
             "best_score": self.best_score,
@@ -212,7 +274,7 @@ class QuizGame:
             os.replace(temporary_name, self.state_path)
             return True
         except OSError as error:
-            self.output(f"⚠️ 상태를 저장하지 못했습니다: {error}")
+            self.error(f"⚠️ 상태를 저장하지 못했습니다: {error}")
             if temporary_name:
                 try:
                     Path(temporary_name).unlink(missing_ok=True)
@@ -255,39 +317,101 @@ class QuizGame:
             self.output("⚠️ 등록된 퀴즈가 없습니다. 먼저 퀴즈를 추가해 주세요.")
             return
 
+        selected = self._select_quizzes()
+        correct, hints_used = self._play_selected(selected)
+        total = len(selected)
+        base_score, score = calculate_score(correct, total, hints_used)
+        self._show_result(total, correct, base_score, score, hints_used)
+        record = self._history_record(total, correct, score, hints_used)
+        self._persist_result(record)
+
+    def _select_quizzes(self) -> List[Quiz]:
+        """사용자가 고른 수만큼 무작위 문제를 선택한다."""
         count = self.read_int(
-            f"풀 문제 수 (1~{len(self.quizzes)}): ", 1, len(self.quizzes)
+            f"풀 문제 수 (1~{len(self.quizzes)}): ",
+            1,
+            len(self.quizzes),
         )
         selected = list(self.quizzes)
         self.rng.shuffle(selected)
-        selected = selected[:count]
+        return selected[:count]
+
+    def _play_selected(self, selected: List[Quiz]) -> tuple[int, int]:
+        """선택된 문제를 풀고 정답·유효 힌트 수를 반환한다."""
         correct = 0
         hints_used = 0
         self.output(f"\n📝 퀴즈를 시작합니다. (총 {len(selected)}문제)")
         for number, quiz in enumerate(selected, start=1):
-            self.output("\n" + "-" * 42)
-            for line in quiz.display_lines(number):
-                self.output(line)
-            if self.read_yes_no("힌트를 볼까요? (y/N): "):
-                hints_used += 1
-                hint = quiz.hint or "등록된 힌트가 없습니다."
-                self.output(f"💡 힌트: {hint} (-10점)")
-            answer = self.read_int("정답 입력 (1~4): ", 1, 4)
-            if quiz.is_correct(answer):
-                correct += 1
-                self.output("✅ 정답입니다!")
-            else:
-                self.output(f"❌ 오답입니다. 정답은 {quiz.answer}번입니다.")
+            is_correct, used_hint = self._play_question(number, quiz)
+            correct += int(is_correct)
+            hints_used += int(used_hint)
+        return correct, hints_used
 
-        total = len(selected)
-        base_score = round(correct / total * 100)
-        score = max(0, base_score - hints_used * 10)
+    def _play_question(self, number: int, quiz: Quiz) -> tuple[bool, bool]:
+        """문제 하나를 출력하고 정답·유효 힌트 여부를 반환한다."""
+        self.output("\n" + "-" * 42)
+        for line in quiz.display_lines(number):
+            self.output(line)
+        used_hint = self._offer_hint(quiz)
+        answer = self.read_int("정답 입력 (1~4): ", 1, 4)
+        is_correct = quiz.is_correct(answer)
+        if is_correct:
+            self.output("✅ 정답입니다!")
+        else:
+            self.output(f"❌ 오답입니다. 정답은 {quiz.answer}번입니다.")
+        return is_correct, used_hint
+
+    def _offer_hint(self, quiz: Quiz) -> bool:
+        """실제 힌트를 보여 준 경우에만 감점 여부를 반환한다."""
+        if not self.read_yes_no("힌트를 볼까요? (y/N): "):
+            return False
+        if not quiz.hint:
+            self.output("💡 등록된 힌트가 없습니다. (감점 없음)")
+            return False
+        self.output(f"💡 힌트: {quiz.hint} (-10점)")
+        return True
+
+    def _show_result(
+        self,
+        total: int,
+        correct: int,
+        base_score: int,
+        score: int,
+        hints_used: int,
+    ) -> None:
+        """점수와 힌트 감점 내역을 출력한다."""
         self.output("\n" + "=" * 42)
         self.output(f"🏆 결과: {total}문제 중 {correct}문제 정답 ({score}점)")
         if hints_used:
-            self.output(
-                f"   기본 {base_score}점 - 힌트 감점 {hints_used * 10}점"
-            )
+            penalty = hints_used * 10
+            self.output(f"   기본 {base_score}점 - 힌트 감점 {penalty}점")
+
+    @staticmethod
+    def _history_record(
+        total: int,
+        correct: int,
+        score: int,
+        hints_used: int,
+    ) -> Dict[str, Any]:
+        """현재 플레이 결과를 ISO 8601 기록으로 만든다."""
+        played_at = (
+            datetime.now(timezone.utc)
+            .isoformat(timespec="seconds")
+            .replace("+00:00", "Z")
+        )
+        return {
+            "played_at": played_at,
+            "total": total,
+            "correct": correct,
+            "score": score,
+            "hints_used": hints_used,
+        }
+
+    def _persist_result(self, record: Dict[str, Any]) -> None:
+        """점수와 기록을 함께 저장하고 실패하면 메모리를 되돌린다."""
+        score = record["score"]
+        total = record["total"]
+        correct = record["correct"]
 
         previous_best_score = self.best_score
         previous_best_result = (
@@ -298,17 +422,7 @@ class QuizGame:
         if is_new_best:
             self.best_score = score
             self.best_result = {"correct": correct, "total": total}
-        self.history.append(
-            {
-                "played_at": datetime.now(timezone.utc)
-                .isoformat(timespec="seconds")
-                .replace("+00:00", "Z"),
-                "total": total,
-                "correct": correct,
-                "score": score,
-                "hints_used": hints_used,
-            }
-        )
+        self.history.append(record)
         if self.save_state():
             if is_new_best:
                 self.output("🎉 새로운 최고 점수입니다!")
@@ -329,6 +443,7 @@ class QuizGame:
             self.output("⚠️ y 또는 n으로 입력하세요.")
 
     def read_nonempty(self, prompt: str) -> str:
+        """공백이 아닌 문자열을 입력받을 때까지 반복한다."""
         while True:
             value = self.input(prompt).strip()
             if value:
@@ -394,6 +509,7 @@ class QuizGame:
             )
 
     def show_menu(self) -> None:
+        """현재 선택 가능한 여섯 가지 메뉴를 출력한다."""
         self.output("\n" + "=" * 42)
         self.output("          Python 기초 퀴즈")
         self.output("=" * 42)
@@ -428,10 +544,11 @@ class QuizGame:
             return 0 if self.safe_exit() else 1
 
     def safe_exit(self) -> bool:
+        """현재 상태를 저장하고 성공 여부를 알린다."""
         saved = self.save_state()
         if saved:
             self.output("💾 상태를 저장했습니다.")
         else:
-            self.output("⚠️ 상태를 저장하지 못했습니다.")
+            self.error("⚠️ 상태를 저장하지 못했습니다.")
         self.output("퀴즈 게임을 종료합니다.")
         return saved

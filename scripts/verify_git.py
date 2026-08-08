@@ -10,18 +10,21 @@ CLONE_LOG = ROOT / "docs" / "evidence" / "logs" / "clone-pull.txt"
 
 
 def git(*arguments: str) -> str:
+    """프로젝트 루트에서 Git 명령을 실행하고 출력을 반환한다."""
     return subprocess.check_output(
         ["git", *arguments], cwd=ROOT, text=True, stderr=subprocess.STDOUT
     ).strip()
 
 
 def fail(message: str, pending: bool = False) -> int:
+    """실패 또는 미완료 메시지를 출력하고 실패 코드를 반환한다."""
     status = "PENDING" if pending else "FAIL"
     print(f"verify-git: {status} - {message}")
     return 1
 
 
 def main() -> int:
+    """커밋·병합·clone/push/pull 증거를 순서대로 검증한다."""
     try:
         count = int(git("rev-list", "--count", "HEAD"))
         if count < 10:
@@ -52,4 +55,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

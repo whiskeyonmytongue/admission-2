@@ -14,10 +14,12 @@ class NewestFirst:
 
     @staticmethod
     def shuffle(values: List[object]) -> None:
+        """마지막 문제를 첫 위치로 옮긴다."""
         values.insert(0, values.pop())
 
 
 def main() -> None:
+    """임시 상태에서 추가·조회·풀이·점수 조회를 실행한다."""
     answers = iter(
         [
             "len 함수의 역할은?",

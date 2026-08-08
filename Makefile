@@ -1,13 +1,17 @@
 PYTHON ?= python3
 
-.PHONY: help env demo git run test lint cli-smoke verify verify-git verify-remote
+.PHONY: help env demo git run syntax style test lint cli-smoke verify
+.PHONY: verify-git verify-remote
 
 help:
 	@echo "make env           # Python·Git·현재 브랜치 확인"
 	@echo "make demo          # 임시 상태에서 전체 기능 시연"
 	@echo "make git           # 브랜치·병합 그래프 확인"
 	@echo "make run           # 퀴즈 게임 실행"
-	@echo "make verify        # 테스트, 문법, 안전 종료 검증"
+	@echo "make syntax        # 현재 Python 문법·컴파일 검증"
+	@echo "make style         # PEP 8·257·Python 3.10 AST 검증"
+	@echo "make test          # 전체 단위 테스트 실행"
+	@echo "make verify        # 문법, 스타일, 테스트, CLI 검증"
 	@echo "make verify-git    # 커밋, 병합, clone/pull 증거 검증"
 	@echo "make verify-remote # 공개 main과 로컬 HEAD 일치 검증"
 
@@ -29,14 +33,20 @@ git:
 run:
 	$(PYTHON) main.py
 
+syntax:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m py_compile \
+		main.py quiz.py default_quizzes.py quiz_game.py \
+		scripts/check_style.py scripts/run_demo.py \
+		scripts/verify_git.py scripts/verify_remote.py \
+		tests/test_quiz.py tests/test_quiz_game.py tests/test_style.py
+
+style:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/check_style.py
+
 test:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s tests -v
 
-lint:
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m py_compile \
-		main.py quiz.py default_quizzes.py quiz_game.py \
-		scripts/run_demo.py scripts/verify_git.py scripts/verify_remote.py \
-		tests/test_quiz.py tests/test_quiz_game.py
+lint: syntax style
 
 cli-smoke:
 	@task_tmp_dir=$$(mktemp -d); \
@@ -45,7 +55,7 @@ cli-smoke:
 		PYTHONDONTWRITEBYTECODE=1 $(PYTHON) main.py >/dev/null
 	@echo "CLI 안전 종료: PASS"
 
-verify: test lint cli-smoke
+verify: syntax style test cli-smoke
 	@echo "로컬 기능 검증: PASS"
 
 verify-git:

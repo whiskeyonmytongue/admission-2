@@ -17,6 +17,7 @@ class Quiz:
         answer: int,
         hint: str = "",
     ) -> None:
+        """입력값을 검증하고 공백을 정리해 퀴즈를 생성한다."""
         if not isinstance(question, str) or not isinstance(hint, str):
             raise ValueError("문제와 힌트는 문자열이어야 합니다.")
         if not isinstance(choices, list) or any(
@@ -29,9 +30,15 @@ class Quiz:
 
         if not question:
             raise ValueError("문제는 비어 있을 수 없습니다.")
-        if len(choices) != self.CHOICE_COUNT or any(not choice for choice in choices):
+        if len(choices) != self.CHOICE_COUNT or any(
+            not choice for choice in choices
+        ):
             raise ValueError("선택지는 비어 있지 않은 네 개여야 합니다.")
-        if isinstance(answer, bool) or not isinstance(answer, int) or not 1 <= answer <= 4:
+        if (
+            isinstance(answer, bool)
+            or not isinstance(answer, int)
+            or not 1 <= answer <= 4
+        ):
             raise ValueError("정답 번호는 1부터 4 사이의 정수여야 합니다.")
 
         self.question = question
@@ -42,9 +49,11 @@ class Quiz:
     def display_lines(self, number: int | None = None) -> List[str]:
         """터미널에 출력할 문제와 선택지 문자열을 반환한다."""
         title = f"[문제 {number}] {self.question}" if number else self.question
-        return [title] + [
-            f"{index}. {choice}" for index, choice in enumerate(self.choices, start=1)
+        lines = [
+            f"{index}. {choice}"
+            for index, choice in enumerate(self.choices, start=1)
         ]
+        return [title] + lines
 
     def is_correct(self, answer: int) -> bool:
         """입력한 번호가 정답인지 확인한다."""

@@ -30,7 +30,12 @@ python3 main.py
 
 숫자 입력의 앞뒤 공백은 제거합니다. 빈 값, 문자, 허용 범위 밖 숫자는 이유를
 알려 주고 다시 입력받습니다. `Ctrl+C`나 EOF가 발생해도 가능한 상태를 저장한
-뒤 traceback 없이 종료합니다.
+뒤 traceback 없이 종료합니다. 저장에 실패해 종료할 수 없는 경우에는 진단을
+표준 오류(`stderr`)로 출력하고 종료 코드 `1`을 반환합니다.
+
+`main.py`를 다른 디렉터리에서 실행해도 기본 저장 위치는 항상 이 프로젝트의
+`state.json`입니다. 별도 상태가 필요하면 `QUIZ_STATE_PATH` 환경 변수로 경로를
+바꿀 수 있습니다.
 
 ## 구현 기능
 
@@ -44,7 +49,7 @@ python3 main.py
 | 안전 저장 | 임시 파일 기록 후 `os.replace()`로 원자 교체 | `save_state()` |
 | 보너스 1 | `random.shuffle()`로 문제 순서 무작위화 | `play_quiz()` |
 | 보너스 2 | 전체 문제 범위 안에서 풀 문제 수 선택 | `play_quiz()` |
-| 보너스 3 | 힌트 한 번당 최종 점수 10점 감점, 최저 0점 | `play_quiz()` |
+| 보너스 3 | 실제 힌트 한 번당 10점 감점, 빈 힌트는 감점 없음 | `_offer_hint()` |
 | 보너스 4 | 퀴즈 삭제와 저장 실패 시 메모리 복구 | `delete_quiz()` |
 | 보너스 5 | ISO 8601 시각·문제 수·정답 수·점수 기록 | `history` |
 
@@ -60,7 +65,8 @@ main.py
 ```
 
 - `Quiz`는 문제 한 개의 데이터 검증, 표시 형식과 정답 판정을 담당합니다.
-- `QuizGame`은 입력 검증, 메뉴, 게임 진행, 점수 계산과 파일 입출력을 담당합니다.
+- `QuizGame`은 입력 검증, 메뉴, 게임 진행과 파일 입출력을 담당합니다.
+- `calculate_score()`는 정답 수와 유효한 힌트 수만 받아 점수를 계산합니다.
 - 역할을 나눠 문제 형식 변경은 `Quiz`, 게임 규칙 변경은 `QuizGame`부터 확인할
   수 있습니다.
 
@@ -116,7 +122,7 @@ JSON은 사람이 읽을 수 있고 Python의 `dict`와 `list`를 그대로 표�
 ├── default_quizzes.py         # 기본 퀴즈 5개
 ├── state.json                 # 퀴즈·점수·히스토리
 ├── tests/                     # unittest 자동 테스트
-├── scripts/                   # Git·원격 검증 스크립트
+├── scripts/                   # 스타일·Git·원격 검증 스크립트
 ├── docs/evidence/             # 실제 실행 로그와 화면
 ├── Makefile                   # 반복 가능한 검증 명령
 └── README.md
@@ -128,13 +134,21 @@ JSON은 사람이 읽을 수 있고 Python의 `dict`와 `list`를 그대로 표�
 make env
 make demo
 make git
+make syntax
+make style
+make test
 make verify
 ```
 
 `make env`는 실행 환경, `make demo`는 핵심 기능 전체, `make git`은 브랜치·병합
-이력을 보여 줍니다. `make verify`는 20개 단위 테스트, Python 문법 검사, 임시
-상태를 이용한 CLI 안전 종료를 차례로 확인합니다. 시연과 테스트는 `tempfile`
-아래의 상태만 사용하므로 제출용 `state.json`을 변경하지 않습니다.
+이력을 보여 줍니다. `make verify`는 Python 3.10 문법, 스타일, 32개 단위 테스트,
+임시 상태를 이용한 CLI 안전 종료를 차례로 확인합니다. 시연과 테스트는
+`tempfile` 아래의 상태만 사용하므로 제출용 `state.json`을 변경하지 않습니다.
+
+스타일 검사는 외부 패키지 없이 `ast`, `tokenize`, `pathlib` 등 표준 라이브러리만
+사용합니다. UTF-8, LF, 마지막 개행, 줄 끝 공백, 4칸 들여쓰기, 코드 79자,
+주석·docstring 72자, 공개 API docstring, Python 3.10 AST와 함수 50줄 제한을
+검사합니다. 위반하면 `파일:줄` 형식으로 원인을 출력하고 실패합니다.
 
 원격 작업까지 끝난 뒤에는 다음 명령으로 Git 요구사항과 공개 저장소 상태를
 확인할 수 있습니다.
