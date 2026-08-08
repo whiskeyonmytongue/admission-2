@@ -8,5 +8,4 @@ $ git config --local --get user.name
 whiskeyonmytongue
 
 $ git config --local --get user.email
-whiskeyonmytongue@users.noreply.github.com
-
+239003675+whiskeyonmytongue@users.noreply.github.com

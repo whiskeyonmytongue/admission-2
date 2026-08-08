@@ -125,12 +125,16 @@ JSON은 사람이 읽을 수 있고 Python의 `dict`와 `list`를 그대로 표�
 ## 자동 검증
 
 ```bash
+make env
+make demo
+make git
 make verify
 ```
 
-위 명령은 12개 단위 테스트, Python 문법 검사, 임시 상태를 이용한 CLI 안전 종료를
-차례로 확인합니다. 테스트는 `tempfile` 아래의 상태만 사용하므로 제출용
-`state.json`을 변경하지 않습니다.
+`make env`는 실행 환경, `make demo`는 핵심 기능 전체, `make git`은 브랜치·병합
+이력을 보여 줍니다. `make verify`는 12개 단위 테스트, Python 문법 검사, 임시
+상태를 이용한 CLI 안전 종료를 차례로 확인합니다. 시연과 테스트는 `tempfile`
+아래의 상태만 사용하므로 제출용 `state.json`을 변경하지 않습니다.
 
 원격 작업까지 끝난 뒤에는 다음 명령으로 Git 요구사항과 공개 저장소 상태를
 확인할 수 있습니다.
@@ -167,13 +171,22 @@ make verify-remote
 - [자동 테스트와 검증 결과](docs/evidence/logs/verification.txt)
 - `clone → commit → push → pull` 로그: 원격 저장소 공개 후 생성
 
-## 화면 확인 순서
+## 실제 실행 화면
 
-제출 화면은 실제 실행 결과와 아래 텍스트 로그를 대조해 촬영합니다.
+### 1. 실행 환경
 
-1. Python 버전과 로컬 Git 사용자 설정
-2. 퀴즈 추가 후 6개가 된 목록
-3. 무작위 문제 플레이와 점수 결과
-4. 최고 점수와 ISO 시각별 기록
-5. `git log --oneline --graph --all`의 분기·병합 구조
-6. 별도 clone에서 push한 변경을 기존 디렉터리에서 pull한 결과
+![Python과 Git 실행 환경](docs/evidence/images/environment.png)
+
+### 2. 추가·목록·풀이·점수
+
+![퀴즈 핵심 기능 시연](docs/evidence/images/app-workflow.png)
+
+방금 추가한 여섯 번째 문제를 풀어 정답 1개, 힌트 1회, 최종 90점과 ISO 시각
+기록이 한 화면에 남는 것을 확인할 수 있습니다.
+
+### 3. 브랜치와 병합 이력
+
+![feature 브랜치 no-ff 병합 그래프](docs/evidence/images/git-history.png)
+
+`feature/play-quiz`의 두 기능 커밋이 `61a6736` 병합 커밋을 통해 `main`으로
+합쳐진 구조입니다. 원격 공개 후 실제 clone→push→pull 화면도 이어서 보존합니다.
