@@ -199,3 +199,43 @@ class QuizGame:
             if minimum <= value <= maximum:
                 return value
             self.output(f"⚠️ {minimum}부터 {maximum} 사이의 숫자를 입력하세요.")
+
+    def show_menu(self) -> None:
+        self.output("\n" + "=" * 42)
+        self.output("          Python 기초 퀴즈")
+        self.output("=" * 42)
+        self.output("1. 퀴즈 풀기")
+        self.output("2. 퀴즈 추가")
+        self.output("3. 퀴즈 목록")
+        self.output("4. 점수 확인")
+        self.output("5. 퀴즈 삭제")
+        self.output("6. 종료")
+        self.output("=" * 42)
+
+    def run(self) -> None:
+        """메뉴를 반복하고 EOF/Ctrl+C에서도 저장한 뒤 정상 종료한다."""
+        try:
+            while True:
+                self.show_menu()
+                menu = self.read_int("선택: ", 1, 6)
+                if menu == 1:
+                    self.play_quiz()
+                elif menu == 2:
+                    self.add_quiz()
+                elif menu == 3:
+                    self.list_quizzes()
+                elif menu == 4:
+                    self.show_score()
+                elif menu == 5:
+                    self.delete_quiz()
+                else:
+                    self.safe_exit()
+                    return
+        except (EOFError, KeyboardInterrupt):
+            self.output("\n⚠️ 입력이 중단되었습니다. 현재 상태를 저장합니다.")
+            self.safe_exit()
+
+    def safe_exit(self) -> None:
+        if self.save_state():
+            self.output("💾 상태를 저장했습니다.")
+        self.output("퀴즈 게임을 종료합니다.")
