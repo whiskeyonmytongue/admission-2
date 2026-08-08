@@ -1,0 +1,22 @@
+$ make verify
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+...
+Ran 12 tests in 0.007s
+
+OK
+PYTHONDONTWRITEBYTECODE=1 python3 -m py_compile \
+    main.py quiz.py default_quizzes.py quiz_game.py \
+    scripts/verify_git.py scripts/verify_remote.py \
+    tests/test_quiz.py tests/test_quiz_game.py
+CLI 안전 종료: PASS
+로컬 기능 검증: PASS
+
+$ make verify-git
+verify-git: PENDING - clone/push/pull 실습 로그가 아직 없습니다.
+
+$ make verify-remote
+verify-remote: PENDING - origin이 아직 설정되지 않았습니다.
+
+`verify-git`과 `verify-remote`의 PENDING은 로컬 구현 완료 시점의 정상 상태다.
+원격 공개와 실제 clone/push/pull을 마치면 다시 실행해 PASS를 기록한다.
+

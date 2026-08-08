@@ -1,5 +1,7 @@
 $ git log --oneline --graph --decorate --all
-* e171ea5 (HEAD -> main) Build: 로컬 Git 원격 검증 Make 타깃 추가
+* b01fe42 (HEAD -> main) Fix: 잘못된 JSON 필드 타입도 손상 상태로 복구
+* 63413b4 Docs: 실행 방법 설계 설명과 실제 증거 정리
+* e171ea5 Build: 로컬 Git 원격 검증 Make 타깃 추가
 * 502471f Test: 상태 복구 입력 경계와 보너스 동작 검증
 * 6659e85 Feat: 최고 점수와 ISO 시각별 플레이 기록 저장
 * a43168d Feat: 퀴즈 추가 목록 삭제와 즉시 저장 구현

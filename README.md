@@ -164,6 +164,7 @@ make verify-remote
 - [개발 환경 로그](docs/evidence/logs/environment.txt)
 - [추가·목록·플레이·점수 실행 로그](docs/evidence/logs/app-workflow.txt)
 - [브랜치 병합 그래프](docs/evidence/logs/git-history.txt)
+- [자동 테스트와 검증 결과](docs/evidence/logs/verification.txt)
 - `clone → commit → push → pull` 로그: 원격 저장소 공개 후 생성
 
 ## 화면 확인 순서
