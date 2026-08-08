@@ -193,4 +193,12 @@ make verify-remote
 ![feature 브랜치 no-ff 병합 그래프](docs/evidence/images/git-history.png)
 
 `feature/play-quiz`의 두 기능 커밋이 `61a6736` 병합 커밋을 통해 `main`으로
-합쳐진 구조입니다. 원격 공개 후 실제 clone→push→pull 화면도 이어서 보존합니다.
+합쳐진 구조입니다.
+
+### 4. 실제 clone→push→pull
+
+![별도 clone에서 push하고 원본에서 pull한 결과](docs/evidence/images/clone-pull.png)
+
+별도 clone의 `c45d37d` 커밋을 GitHub에 push한 뒤 원본 작업 디렉터리에서
+fast-forward pull했습니다. 같은 명령과 출력은
+[텍스트 로그](docs/evidence/logs/clone-pull.txt)에서도 복사해 확인할 수 있습니다.

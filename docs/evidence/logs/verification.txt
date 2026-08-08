@@ -12,10 +12,11 @@ CLI 안전 종료: PASS
 로컬 기능 검증: PASS
 
 $ make verify-git
-verify-git: PENDING - clone/push/pull 실습 로그가 아직 없습니다.
+python3 scripts/verify_git.py
+커밋 18개, no-ff 병합, clone/push/pull 증거: PASS
 
 $ make verify-remote
 verify-remote: PENDING - origin이 아직 설정되지 않았습니다.
 
-`verify-git`과 `verify-remote`의 PENDING은 로컬 구현 완료 시점의 정상 상태다.
-원격 공개와 실제 clone/push/pull을 마치면 다시 실행해 PASS를 기록한다.
+`verify-remote`의 PENDING은 최초 로컬 구현 시점의 기록이다. 최종 문서 커밋을
+push한 뒤 다시 실행해 PUBLIC/main/HEAD 일치를 확인한다.
