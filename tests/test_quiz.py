@@ -36,6 +36,18 @@ class QuizTest(unittest.TestCase):
                 {"question": "질문", "choices": [1, 2, 3, 4], "answer": 1}
             )
 
+    def test_rejects_terminal_control_characters(self) -> None:
+        valid_choices = ["A", "B", "C", "D"]
+        unsafe_values = (
+            ("질문\x1b]52;c;VEVTVA==\x07", valid_choices, "힌트"),
+            ("질문", ["A", "B\n위조", "C", "D"], "힌트"),
+            ("질문", valid_choices, "힌트\t위조"),
+        )
+        for question, choices, hint in unsafe_values:
+            with self.subTest(value=(question, choices, hint)):
+                with self.assertRaisesRegex(ValueError, "제어 문자"):
+                    Quiz(question, choices, 1, hint)
+
     def test_display_lines_contains_numbered_choices(self) -> None:
         quiz = Quiz("질문", ["A", "B", "C", "D"], 1)
         self.assertEqual(

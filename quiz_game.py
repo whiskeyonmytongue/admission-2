@@ -23,6 +23,17 @@ TEMPORARY_FILE_ATTEMPTS = 10
 BACKUP_FILE_ATTEMPTS = 10
 
 
+def _unique_json_object(
+    pairs: List[tuple[str, Any]],
+) -> Dict[str, Any]:
+    result = {}  # type: Dict[str, Any]
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("중복 JSON 키: {0!r}".format(key))
+        result[key] = value
+    return result
+
+
 def _owner_only_opener(path: str, flags: int) -> int:
     return os.open(path, flags, 0o600)
 
@@ -177,7 +188,10 @@ class QuizGame:
 
         try:
             with self.state_path.open("r", encoding="utf-8") as state_file:
-                data = json.load(state_file)
+                data = json.load(
+                    state_file,
+                    object_pairs_hook=_unique_json_object,
+                )
             self._apply_state(data)
         except OSError as error:
             raise StateAccessError(
@@ -587,7 +601,12 @@ class QuizGame:
         ]
         answer = self.read_int("정답 번호 (1~4): ", 1, 4)
         hint = self.input("힌트 (생략 가능): ").strip()
-        self.quizzes.append(Quiz(question, choices, answer, hint))
+        try:
+            quiz = Quiz(question, choices, answer, hint)
+        except ValueError as error:
+            self.output("⚠️ 퀴즈를 추가할 수 없습니다: {0}".format(error))
+            return
+        self.quizzes.append(quiz)
         if self.save_state():
             self.output("✅ 퀴즈가 추가되고 저장되었습니다.")
         else:

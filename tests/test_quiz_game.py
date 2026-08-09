@@ -167,6 +167,21 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(self.corrupt_backup_count(), 1)
         json.loads(self.state_path.read_text(encoding="utf-8"))
 
+    def test_duplicate_json_keys_are_backed_up_as_corrupt(self) -> None:
+        self.state_path.write_text(
+            '{"quizzes":[{"question":"숨겨진 문제",'
+            '"choices":["A","B","C","D"],"answer":1}],'
+            '"quizzes":[],"best_score":null,"best_result":null,'
+            '"history":[]}',
+            encoding="utf-8",
+        )
+
+        game = self.make_game()
+
+        self.assertEqual(len(game.quizzes), 5)
+        self.assertEqual(self.corrupt_backup_count(), 1)
+        self.assertTrue(any("중복 JSON 키" in item for item in self.messages))
+
     def test_wrong_field_types_are_treated_as_corrupt_state(self) -> None:
         self.state_path.write_text(
             json.dumps(
@@ -305,6 +320,30 @@ class QuizGameTest(unittest.TestCase):
         restored = self.make_game()
         self.assertEqual(len(restored.quizzes), 5)
         self.assertTrue(any("추가 문제" in message for message in self.messages))
+
+    def test_add_rejects_control_text_without_changing_state(self) -> None:
+        game = self.make_game(
+            [
+                "질문\x1b]52;c;VEVTVA==\x07",
+                "A",
+                "B",
+                "C",
+                "D",
+                "1",
+                "힌트",
+            ]
+        )
+        original_state = self.state_path.read_text(encoding="utf-8")
+
+        game.add_quiz()
+
+        self.assertEqual(len(game.quizzes), 5)
+        self.assertEqual(
+            self.state_path.read_text(encoding="utf-8"),
+            original_state,
+        )
+        self.assertTrue(any("제어 문자" in item for item in self.messages))
+        self.assertFalse(any("\x1b" in item for item in self.messages))
 
     def test_add_rolls_back_when_save_fails(self) -> None:
         game = self.make_game(
