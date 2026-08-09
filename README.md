@@ -141,7 +141,7 @@ make verify
 ```
 
 `make env`는 실행 환경, `make demo`는 핵심 기능 전체, `make git`은 브랜치·병합
-이력을 보여 줍니다. `make verify`는 Python 3.10 문법, 스타일, 38개 단위 테스트,
+이력을 보여 줍니다. `make verify`는 Python 3.10 문법, 스타일, 40개 단위 테스트,
 임시 상태를 이용한 CLI 안전 종료를 차례로 확인합니다. 시연과 테스트는
 `tempfile` 아래의 상태만 사용하므로 제출용 `state.json`을 변경하지 않습니다.
 

@@ -282,12 +282,13 @@ class QuizGame:
             return True
         except OSError as error:
             self.error(f"⚠️ 상태를 저장하지 못했습니다: {error}")
+            return False
+        finally:
             if temporary_name:
                 try:
                     Path(temporary_name).unlink(missing_ok=True)
                 except OSError:
                     pass
-            return False
 
     def _backup_corrupt_state(self) -> Optional[Path]:
         if not self.state_path.exists():

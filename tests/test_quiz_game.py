@@ -318,6 +318,23 @@ class QuizGameTest(unittest.TestCase):
         self.assertTrue(self.state_path.exists())
         self.assertEqual(self.errors, [])
 
+    def test_interrupt_during_replace_removes_temporary_file(self) -> None:
+        game = self.make_game(["6"])
+        temporary_pattern = f".{self.state_path.name}.*.tmp"
+
+        with patch(
+            "quiz_game.os.replace",
+            side_effect=[KeyboardInterrupt, None],
+        ) as replace:
+            result = game.run()
+
+        self.assertEqual(result, 0)
+        self.assertEqual(replace.call_count, 2)
+        temporary_files = list(
+            self.state_path.parent.glob(temporary_pattern)
+        )
+        self.assertEqual(temporary_files, [])
+
     def test_interrupted_exit_save_failure_returns_one_on_stderr(self) -> None:
         def raise_eof(_: str) -> str:
             raise EOFError
