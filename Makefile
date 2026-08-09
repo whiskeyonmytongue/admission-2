@@ -39,12 +39,7 @@ runtime:
 	@$(PYTHON) scripts/check_runtime.py
 
 syntax:
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m py_compile \
-		main.py quiz.py default_quizzes.py quiz_game.py \
-		scripts/check_runtime.py scripts/check_style.py scripts/run_demo.py \
-		scripts/verify_git.py scripts/verify_remote.py \
-		tests/test_quiz.py tests/test_quiz_game.py tests/test_style.py \
-		tests/test_verify_remote.py
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m scripts.check_syntax
 
 style:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/check_style.py

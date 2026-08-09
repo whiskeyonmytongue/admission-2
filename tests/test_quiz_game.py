@@ -4,6 +4,7 @@ import io
 import json
 import os
 import signal
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -42,6 +43,21 @@ class QuizGameTest(unittest.TestCase):
         return len(
             list(self.state_path.parent.glob(".quiz-corrupt-*.bak"))
         )
+
+    def test_runtime_state_artifacts_are_git_ignored(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        artifact_paths = (
+            ".quiz-state-probe.tmp",
+            "nested/.quiz-corrupt-probe.bak",
+        )
+        for artifact_path in artifact_paths:
+            with self.subTest(path=artifact_path):
+                completed = subprocess.run(
+                    ["git", "check-ignore", "--quiet", artifact_path],
+                    cwd=root,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 0)
 
     def test_calculate_score_applies_penalty_and_floor(self) -> None:
         self.assertEqual(calculate_score(4, 5, 1), (80, 70))

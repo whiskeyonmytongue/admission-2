@@ -5,6 +5,5 @@ __pycache__/
 .vscode/
 .coverage
 htmlcov/
-state.json.tmp
-state.json.corrupt-*.bak
-
+**/.quiz-state-*.tmp
+**/.quiz-corrupt-*.bak
