@@ -59,6 +59,42 @@ def _cleanup_temporary_file(
             )
 
 
+def _copy_backup_exclusive(
+    source_path: Path,
+    backup_path: Path,
+    error_fn: Callable[[str], None],
+) -> None:
+    destination = None
+    owns_backup = False
+    try:
+        with _blocked_sigint():
+            destination = open(
+                backup_path,
+                "xb",
+                opener=_owner_only_opener,
+            )
+            owns_backup = True
+        with destination, source_path.open("rb") as source:
+            shutil.copyfileobj(source, destination)
+            destination.flush()
+            os.fsync(destination.fileno())
+    except BaseException:
+        if destination is not None and not destination.closed:
+            try:
+                destination.close()
+            except OSError as error:
+                error_fn(f"⚠️ 손상 상태 백업을 닫지 못했습니다: {error}")
+        if owns_backup:
+            try:
+                backup_path.unlink(missing_ok=True)
+            except OSError as error:
+                error_fn(
+                    "⚠️ 불완전한 손상 상태 백업을 정리하지 못했습니다: "
+                    f"{backup_path} ({error})"
+                )
+        raise
+
+
 @contextmanager
 def _blocked_sigint() -> Iterator[None]:
     if not hasattr(signal, "pthread_sigmask"):
@@ -367,25 +403,15 @@ class QuizGame:
                 f"{secrets.token_hex(4)}.bak"
             )
             try:
-                with self.state_path.open("rb") as source, open(
+                _copy_backup_exclusive(
+                    self.state_path,
                     backup,
-                    "xb",
-                    opener=_owner_only_opener,
-                ) as destination:
-                    shutil.copyfileobj(source, destination)
-                    destination.flush()
-                    os.fsync(destination.fileno())
+                    self.error,
+                )
                 return backup
             except FileExistsError:
                 continue
             except OSError as error:
-                try:
-                    backup.unlink(missing_ok=True)
-                except OSError as cleanup_error:
-                    self.error(
-                        "⚠️ 불완전한 손상 상태 백업을 정리하지 못했습니다: "
-                        f"{backup} ({cleanup_error})"
-                    )
                 self.error(f"⚠️ 손상 상태를 백업하지 못했습니다: {error}")
                 return None
         self.error("⚠️ 충돌하지 않는 손상 상태 백업 이름을 만들지 못했습니다.")

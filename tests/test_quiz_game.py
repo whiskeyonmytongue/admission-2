@@ -218,6 +218,29 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(attempts, 2)
         self.assertEqual(backup.read_bytes(), self.state_path.read_bytes())
 
+    def test_backup_collisions_never_unlink_unowned_paths(self) -> None:
+        game = self.make_game()
+        with patch(
+            "quiz_game.open",
+            side_effect=FileExistsError("collision"),
+        ), patch("pathlib.Path.unlink") as unlink:
+            backup = game._backup_corrupt_state()
+
+        self.assertIsNone(backup)
+        unlink.assert_not_called()
+
+    def test_interrupted_backup_removes_only_created_backup(self) -> None:
+        game = self.make_game()
+        with patch(
+            "quiz_game.shutil.copyfileobj",
+            side_effect=KeyboardInterrupt,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                game._backup_corrupt_state()
+
+        backups = list(self.state_path.parent.glob(".quiz-corrupt-*.bak"))
+        self.assertEqual(backups, [])
+
     def test_read_io_failure_does_not_replace_valid_source(self) -> None:
         source = '{"quizzes": []}'
         self.state_path.write_text(source, encoding="utf-8")

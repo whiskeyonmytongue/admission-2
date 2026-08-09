@@ -10,7 +10,7 @@ PYTHONDONTWRITEBYTECODE=1 python3.10 scripts/check_style.py
 Style check: PASS (15 files, Python 3.10+)
 PYTHONDONTWRITEBYTECODE=1 python3.10 -m unittest discover -s tests -v
 ...
-Ran 59 tests in 0.031s
+Ran 61 tests in 0.030s
 
 OK
 CLI 안전 종료: PASS
@@ -18,7 +18,7 @@ CLI 안전 종료: PASS
 
 $ make verify-git
 python3 scripts/verify_git.py
-커밋 29개, no-ff 병합, clone/push/pull 증거: PASS
+커밋 30개, no-ff 병합, clone/push/pull 증거: PASS
 
 $ make verify
 Runtime check: FAIL - make verify는 Python 3.10이 필요합니다. 현재 버전: 3.13
