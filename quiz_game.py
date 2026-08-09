@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import random
 import secrets
+import signal
 import shutil
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TextIO
+from typing import Any, Callable, Dict, Iterator, List, Optional, TextIO
 
 from default_quizzes import create_default_quizzes
 from quiz import Quiz
@@ -30,6 +33,21 @@ def _open_owner_only(path: Path) -> TextIO:
         encoding="utf-8",
         opener=_owner_only_opener,
     )
+
+
+@contextmanager
+def _blocked_sigint() -> Iterator[None]:
+    if not hasattr(signal, "pthread_sigmask"):
+        yield
+        return
+    previous_mask = signal.pthread_sigmask(
+        signal.SIG_BLOCK,
+        {signal.SIGINT},
+    )
+    try:
+        yield
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
 
 
 class StateAccessError(RuntimeError):
@@ -274,16 +292,18 @@ class QuizGame:
     def save_state(self) -> bool:
         """같은 디렉터리의 임시 파일을 원자적으로 교체한다."""
         temporary_path: Optional[Path] = None
+        temporary_file: Optional[TextIO] = None
         try:
             self.state_path.parent.mkdir(parents=True, exist_ok=True)
             for _ in range(TEMPORARY_FILE_ATTEMPTS):
-                temporary_path = self.state_path.with_name(
+                candidate = self.state_path.with_name(
                     f".quiz-state-{secrets.token_hex(16)}.tmp"
                 )
                 try:
-                    temporary_file = _open_owner_only(temporary_path)
+                    with _blocked_sigint():
+                        temporary_file = _open_owner_only(candidate)
+                        temporary_path = candidate
                 except FileExistsError:
-                    temporary_path = None
                     continue
                 break
             else:
@@ -304,6 +324,11 @@ class QuizGame:
             self.error(f"⚠️ 상태를 저장하지 못했습니다: {error}")
             return False
         finally:
+            if temporary_file is not None and not temporary_file.closed:
+                try:
+                    temporary_file.close()
+                except OSError:
+                    pass
             if temporary_path is not None:
                 try:
                     temporary_path.unlink(missing_ok=True)
@@ -314,8 +339,11 @@ class QuizGame:
         if not self.state_path.exists():
             return None
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-        backup = self.state_path.with_name(
-            f"{self.state_path.name}.corrupt-{timestamp}.bak"
+        name_digest = hashlib.sha256(
+            self.state_path.name.encode("utf-8")
+        ).hexdigest()[:12]
+        backup = self.state_path.parent / (
+            f".quiz-corrupt-{name_digest}-{timestamp}.bak"
         )
         try:
             shutil.copy2(self.state_path, backup)

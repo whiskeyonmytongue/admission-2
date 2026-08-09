@@ -3,12 +3,14 @@
 import io
 import json
 import os
+import signal
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import main as application
+import quiz_game
 from quiz import Quiz
 from quiz_game import QuizGame, StateAccessError, calculate_score
 
@@ -38,7 +40,7 @@ class QuizGameTest(unittest.TestCase):
 
     def corrupt_backup_count(self) -> int:
         return len(
-            list(self.state_path.parent.glob("state.json.corrupt-*.bak"))
+            list(self.state_path.parent.glob(".quiz-corrupt-*.bak"))
         )
 
     def test_calculate_score_applies_penalty_and_floor(self) -> None:
@@ -337,16 +339,15 @@ class QuizGameTest(unittest.TestCase):
 
     def test_interrupt_during_temporary_open_removes_file(self) -> None:
         game = self.make_game(["6"])
-        original_open = Path.open
+        original_open = quiz_game._open_owner_only
         interrupted = False
 
         def interrupt_after_open(path):
             nonlocal interrupted
-            temporary_file = original_open(path, "x", encoding="utf-8")
+            temporary_file = original_open(path)
             if not interrupted:
                 interrupted = True
-                temporary_file.close()
-                raise KeyboardInterrupt
+                os.kill(os.getpid(), signal.SIGINT)
             return temporary_file
 
         with patch(
@@ -358,6 +359,23 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertTrue(interrupted)
         self.assertEqual(list(self.state_path.parent.glob(".*.tmp")), [])
+
+    def test_preopen_interrupt_does_not_delete_collision(self) -> None:
+        game = self.make_game()
+        collision = self.state_path.with_name(".quiz-state-fixed.tmp")
+        collision.write_text("foreign", encoding="utf-8")
+
+        with patch(
+            "quiz_game.secrets.token_hex",
+            return_value="fixed",
+        ), patch(
+            "quiz_game._open_owner_only",
+            side_effect=KeyboardInterrupt,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                game.save_state()
+
+        self.assertEqual(collision.read_text(encoding="utf-8"), "foreign")
 
     def test_temporary_collision_retries_without_deleting_owner(self) -> None:
         game = self.make_game()
@@ -393,6 +411,23 @@ class QuizGameTest(unittest.TestCase):
         )
 
         self.assertTrue(long_path.exists())
+
+    def test_long_corrupt_state_basename_can_be_recovered(self) -> None:
+        long_path = self.state_path.with_name("s" * 221)
+        long_path.write_text("{not-json", encoding="utf-8")
+
+        game = QuizGame(
+            state_path=long_path,
+            output_fn=self.messages.append,
+            error_fn=self.errors.append,
+        )
+
+        self.assertEqual(len(game.quizzes), 5)
+        self.assertEqual(
+            len(list(long_path.parent.glob(".quiz-corrupt-*.bak"))),
+            1,
+        )
+        json.loads(long_path.read_text(encoding="utf-8"))
 
     def test_interrupted_exit_save_failure_returns_one_on_stderr(self) -> None:
         def raise_eof(_: str) -> str:

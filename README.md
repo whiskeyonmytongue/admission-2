@@ -106,7 +106,8 @@ main.py
 JSON은 사람이 읽을 수 있고 Python의 `dict`와 `list`를 그대로 표현하기 쉬워
 선택했습니다. 읽기·쓰기에는 파일 부재, 권한 오류, 잘못된 JSON 같은 실패가
 생길 수 있어 `try/except`로 처리합니다. 손상된 원본은
-`state.json.corrupt-<UTC 시각>.bak`으로 보존한 뒤 기본 퀴즈로 복구합니다.
+`.quiz-corrupt-<파일명 해시>-<UTC 시각>.bak`으로 보존한 뒤 기본 퀴즈로
+복구합니다. 백업명은 원본 파일명이 길어도 운영체제의 파일명 제한을 넘지 않습니다.
 
 퀴즈가 수천 개로 늘어나면 매번 전체 JSON을 읽고 쓰는 비용과 동시 수정 문제가
 커집니다. 그런 규모에서는 문제와 기록을 개별 조회·갱신할 수 있는 SQLite 같은
@@ -123,6 +124,7 @@ JSON은 사람이 읽을 수 있고 Python의 `dict`와 `list`를 그대로 표�
 ├── state.json                 # 퀴즈·점수·히스토리
 ├── tests/                     # unittest 자동 테스트
 ├── scripts/                   # 스타일·Git·원격 검증 스크립트
+├── .github/workflows/         # Python 3.10·3.13 실제 검증
 ├── docs/evidence/             # 실제 실행 로그와 화면
 ├── Makefile                   # 반복 가능한 검증 명령
 └── README.md
@@ -141,14 +143,16 @@ make verify
 ```
 
 `make env`는 실행 환경, `make demo`는 핵심 기능 전체, `make git`은 브랜치·병합
-이력을 보여 줍니다. `make verify`는 Python 3.10 문법, 스타일, 46개 단위 테스트,
+이력을 보여 줍니다. `make verify`는 Python 3.10 문법, 스타일, 47개 단위 테스트,
 임시 상태를 이용한 CLI 안전 종료를 차례로 확인합니다. 시연과 테스트는
 `tempfile` 아래의 상태만 사용하므로 제출용 `state.json`을 변경하지 않습니다.
 
 스타일 검사는 외부 패키지 없이 `ast`, `tokenize`, `pathlib` 등 표준 라이브러리만
 사용합니다. UTF-8, LF, 마지막 개행, 줄 끝 공백, 4칸 들여쓰기, 코드 79자,
-주석·docstring 72자, 공개 API docstring, Python 3.10 AST·컴파일 문맥과 함수
-50줄 제한을 검사합니다. 위반하면 `파일:줄` 형식으로 원인을 출력하고 실패합니다.
+주석·docstring 72자, 공개 API docstring, Python 3.10 AST 문법, 현재 Python의
+컴파일 문맥과 함수 50줄 제한을 검사합니다. 최소 버전의 실제 실행은 GitHub
+Actions의 Python 3.10 환경에서 다시 확인합니다. 위반하면 `파일:줄` 형식으로
+원인을 출력하고 실패합니다.
 
 원격 작업까지 끝난 뒤에는 다음 명령으로 Git 요구사항과 공개 저장소 상태를
 확인할 수 있습니다.

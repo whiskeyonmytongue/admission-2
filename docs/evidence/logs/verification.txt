@@ -8,7 +8,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_style.py
 Style check: PASS (13 files, Python 3.10+)
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 ...
-Ran 46 tests in 0.025s
+Ran 47 tests in 0.027s
 
 OK
 CLI 안전 종료: PASS
@@ -16,7 +16,28 @@ CLI 안전 종료: PASS
 
 $ make verify-git
 python3 scripts/verify_git.py
-커밋 26개, no-ff 병합, clone/push/pull 증거: PASS
+커밋 27개, no-ff 병합, clone/push/pull 증거: PASS
+
+$ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
+    -e QUIZ_STATE_PATH=/tmp/quiz-state.json \
+    -v "$PWD:/work:ro" -w /work python:3.10-slim sh -c \
+    'python --version && \
+     python -m py_compile main.py quiz.py default_quizzes.py \
+       quiz_game.py scripts/check_style.py scripts/run_demo.py \
+       scripts/verify_git.py scripts/verify_remote.py \
+       tests/test_quiz.py tests/test_quiz_game.py \
+       tests/test_style.py && \
+     python scripts/check_style.py && \
+     python -m unittest discover -s tests -v && \
+     printf "6\n" | python main.py >/tmp/cli-output && \
+     grep -q "종료" /tmp/cli-output && \
+     echo "[PASS] Python 3.10 CLI 안전 종료"'
+[컨테이너 출력 요약]
+Python 3.10.20
+Style check: PASS (13 files, Python 3.10+)
+Ran 47 tests in 0.129s
+OK
+[PASS] Python 3.10 CLI 안전 종료
 
 [이번 로컬 보강 전 원격 검증 기록]
 PUBLIC/main 및 HEAD 5c664a2 일치: PASS
