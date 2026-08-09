@@ -153,10 +153,11 @@ make verify PYTHON=python3.10
 
 스타일 검사는 외부 패키지 없이 `ast`, `tokenize`, `pathlib` 등 표준 라이브러리만
 사용합니다. UTF-8, LF, 마지막 개행, 줄 끝 공백, 4칸 들여쓰기, 코드 79자,
-주석·docstring 72자, 공개 API docstring, Python 3.10 AST 문법, 현재 Python의
-컴파일 문맥과 함수 50줄 제한을 검사합니다. 로컬과 GitHub Actions 모두 Python
-3.10을 사용하므로 AST와 실제 컴파일 기준이 일치합니다. 위반하면 `파일:줄`
-형식으로 원인을 출력하고 실패합니다.
+주석·docstring 72자, 최상위 정의 앞 두 줄 간격, 공개 API docstring,
+Python 3.10 AST 문법, 현재 Python의 컴파일 문맥과 함수 50줄 제한을
+검사합니다. 로컬과 GitHub Actions 모두 Python 3.10을 사용하므로 AST와 실제
+컴파일 기준이 일치합니다. 위반하면 `파일:줄` 형식으로 원인을 출력하고
+실패합니다.
 
 원격 작업까지 끝난 뒤에는 다음 명령으로 Git 요구사항과 공개 저장소 상태를
 확인할 수 있습니다.
@@ -165,6 +166,10 @@ make verify PYTHON=python3.10
 make verify-git
 make verify-remote
 ```
+
+`verify-remote`는 정확한 GitHub 저장소 URL, PUBLIC 공개 범위, 기본 브랜치
+`main`, 로컬·원격 HEAD 일치를 모두 확인합니다. CI에서 사용하는 공식 Action은
+검토한 커밋 SHA로 고정해 주요 버전 태그가 바뀌어도 실행 코드가 변하지 않습니다.
 
 ## Git 작업 기록
 

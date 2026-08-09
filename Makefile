@@ -1,4 +1,5 @@
 PYTHON ?= python3
+MKTEMP ?= mktemp
 
 .PHONY: help env demo git run runtime syntax style test lint cli-smoke verify
 .PHONY: verify-git verify-remote
@@ -10,7 +11,7 @@ help:
 	@echo "make run           # 퀴즈 게임 실행"
 	@echo "make runtime       # 정확한 검증 버전(Python 3.10) 확인"
 	@echo "make syntax        # 현재 Python 문법·컴파일 검증"
-	@echo "make style         # PEP 8·257·Python 3.10 AST 검증"
+	@echo "make style         # 과제용 PEP 8·257 핵심 규칙·Python 3.10 AST 검증"
 	@echo "make test          # 전체 단위 테스트 실행"
 	@echo "make verify        # 문법, 스타일, 테스트, CLI 검증"
 	@echo "make verify-git    # 커밋, 병합, clone/pull 증거 검증"
@@ -42,7 +43,8 @@ syntax:
 		main.py quiz.py default_quizzes.py quiz_game.py \
 		scripts/check_runtime.py scripts/check_style.py scripts/run_demo.py \
 		scripts/verify_git.py scripts/verify_remote.py \
-		tests/test_quiz.py tests/test_quiz_game.py tests/test_style.py
+		tests/test_quiz.py tests/test_quiz_game.py tests/test_style.py \
+		tests/test_verify_remote.py
 
 style:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/check_style.py
@@ -53,7 +55,9 @@ test:
 lint: syntax style
 
 cli-smoke:
-	@task_tmp_dir=$$(mktemp -d); \
+	@task_tmp_dir=$$($(MKTEMP) -d) || { \
+		echo "임시 디렉터리를 만들지 못했습니다." >&2; exit 1; \
+	}; \
 	trap 'rm -rf "$$task_tmp_dir"' EXIT; \
 	printf '6\n' | QUIZ_STATE_PATH="$$task_tmp_dir/state.json" \
 		PYTHONDONTWRITEBYTECODE=1 $(PYTHON) main.py >/dev/null

@@ -20,6 +20,7 @@ from quiz import Quiz
 
 
 TEMPORARY_FILE_ATTEMPTS = 10
+BACKUP_FILE_ATTEMPTS = 10
 
 
 def _owner_only_opener(path: str, flags: int) -> int:
@@ -33,6 +34,29 @@ def _open_owner_only(path: Path) -> TextIO:
         encoding="utf-8",
         opener=_owner_only_opener,
     )
+
+
+def _cleanup_temporary_file(
+    temporary_path: Optional[Path],
+    temporary_file: Optional[TextIO],
+    error_fn: Callable[[str], None],
+) -> None:
+    if temporary_file is not None and not temporary_file.closed:
+        try:
+            temporary_file.close()
+        except OSError as error:
+            error_fn(
+                "⚠️ 임시 상태 파일을 닫지 못했습니다: "
+                f"{temporary_path} ({error})"
+            )
+    if temporary_path is not None:
+        try:
+            temporary_path.unlink(missing_ok=True)
+        except OSError as error:
+            error_fn(
+                "⚠️ 임시 상태 파일을 정리하지 못했습니다: "
+                f"{temporary_path} ({error})"
+            )
 
 
 @contextmanager
@@ -320,20 +344,15 @@ class QuizGame:
                 os.fsync(temporary_file.fileno())
             os.replace(temporary_path, self.state_path)
             return True
-        except OSError as error:
+        except (OSError, TypeError, ValueError, RecursionError) as error:
             self.error(f"⚠️ 상태를 저장하지 못했습니다: {error}")
             return False
         finally:
-            if temporary_file is not None and not temporary_file.closed:
-                try:
-                    temporary_file.close()
-                except OSError:
-                    pass
-            if temporary_path is not None:
-                try:
-                    temporary_path.unlink(missing_ok=True)
-                except OSError:
-                    pass
+            _cleanup_temporary_file(
+                temporary_path,
+                temporary_file,
+                self.error,
+            )
 
     def _backup_corrupt_state(self) -> Optional[Path]:
         if not self.state_path.exists():
@@ -342,14 +361,35 @@ class QuizGame:
         name_digest = hashlib.sha256(
             os.fsencode(self.state_path.name)
         ).hexdigest()[:12]
-        backup = self.state_path.parent / (
-            f".quiz-corrupt-{name_digest}-{timestamp}.bak"
-        )
-        try:
-            shutil.copy2(self.state_path, backup)
-            return backup
-        except OSError:
-            return None
+        for _ in range(BACKUP_FILE_ATTEMPTS):
+            backup = self.state_path.parent / (
+                f".quiz-corrupt-{name_digest}-{timestamp}-"
+                f"{secrets.token_hex(4)}.bak"
+            )
+            try:
+                with self.state_path.open("rb") as source, open(
+                    backup,
+                    "xb",
+                    opener=_owner_only_opener,
+                ) as destination:
+                    shutil.copyfileobj(source, destination)
+                    destination.flush()
+                    os.fsync(destination.fileno())
+                return backup
+            except FileExistsError:
+                continue
+            except OSError as error:
+                try:
+                    backup.unlink(missing_ok=True)
+                except OSError as cleanup_error:
+                    self.error(
+                        "⚠️ 불완전한 손상 상태 백업을 정리하지 못했습니다: "
+                        f"{backup} ({cleanup_error})"
+                    )
+                self.error(f"⚠️ 손상 상태를 백업하지 못했습니다: {error}")
+                return None
+        self.error("⚠️ 충돌하지 않는 손상 상태 백업 이름을 만들지 못했습니다.")
+        return None
 
     def read_int(self, prompt: str, minimum: int, maximum: int) -> int:
         """공백·문자·범위 오류를 안내하고 올바른 정수를 다시 받는다."""
@@ -439,8 +479,14 @@ class QuizGame:
         self.output("\n" + "=" * 42)
         self.output(f"🏆 결과: {total}문제 중 {correct}문제 정답 ({score}점)")
         if hints_used:
-            penalty = hints_used * 10
-            self.output(f"   기본 {base_score}점 - 힌트 감점 {penalty}점")
+            requested_penalty = hints_used * 10
+            applied_penalty = base_score - score
+            penalty_text = f"힌트 감점 {applied_penalty}점"
+            if applied_penalty != requested_penalty:
+                penalty_text += (
+                    f" (요청 {requested_penalty}점, 0점 하한 적용)"
+                )
+            self.output(f"   기본 {base_score}점 - {penalty_text}")
 
     @staticmethod
     def _history_record(

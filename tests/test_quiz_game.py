@@ -113,6 +113,35 @@ class QuizGameTest(unittest.TestCase):
         self.assertTrue(any("denied" in item for item in self.errors))
         self.assertFalse(any("denied" in item for item in self.messages))
 
+    def test_non_serializable_state_is_reported_as_save_failure(self) -> None:
+        game = self.make_game()
+        game.history = [{"invalid": object()}]
+        self.errors.clear()
+
+        self.assertFalse(game.save_state())
+
+        self.assertTrue(any("저장하지 못했습니다" in item for item in self.errors))
+        temporary_files = list(
+            self.state_path.parent.glob(".quiz-state-*.tmp")
+        )
+        self.assertEqual(temporary_files, [])
+
+    def test_failed_temporary_cleanup_reports_retained_path(self) -> None:
+        game = self.make_game()
+        self.errors.clear()
+        with patch(
+            "quiz_game.os.replace",
+            side_effect=PermissionError("replace denied"),
+        ), patch(
+            "pathlib.Path.unlink",
+            side_effect=PermissionError("cleanup denied"),
+        ):
+            self.assertFalse(game.save_state())
+
+        self.assertTrue(any("임시 상태 파일" in item for item in self.errors))
+        for path in self.state_path.parent.glob(".quiz-state-*.tmp"):
+            path.unlink()
+
     def test_corrupt_state_is_backed_up_and_recovered(self) -> None:
         self.state_path.write_text("{not-json", encoding="utf-8")
 
@@ -159,12 +188,35 @@ class QuizGameTest(unittest.TestCase):
         corrupt_source = "{not-json"
         self.state_path.write_text(corrupt_source, encoding="utf-8")
 
-        with patch("quiz_game.shutil.copy2", side_effect=PermissionError):
+        with patch(
+            "quiz_game.open",
+            side_effect=PermissionError("backup denied"),
+        ):
             with self.assertRaises(StateAccessError):
                 self.make_game()
 
         recovered = self.state_path.read_text(encoding="utf-8")
         self.assertEqual(recovered, corrupt_source)
+        self.assertTrue(any("backup denied" in item for item in self.errors))
+
+    def test_backup_name_collision_retries_without_overwrite(self) -> None:
+        game = self.make_game()
+        real_open = open
+        attempts = 0
+
+        def open_after_collision(*arguments, **keywords):
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise FileExistsError("collision")
+            return real_open(*arguments, **keywords)
+
+        with patch("quiz_game.open", side_effect=open_after_collision):
+            backup = game._backup_corrupt_state()
+
+        self.assertIsNotNone(backup)
+        self.assertEqual(attempts, 2)
+        self.assertEqual(backup.read_bytes(), self.state_path.read_bytes())
 
     def test_read_io_failure_does_not_replace_valid_source(self) -> None:
         source = '{"quizzes": []}'
@@ -258,6 +310,17 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(game.best_score, 100)
         self.assertEqual(game.history[0]["hints_used"], 0)
         self.assertTrue(any("감점 없음" in item for item in self.messages))
+
+    def test_score_output_reports_only_applied_penalty_at_floor(self) -> None:
+        game = self.make_game()
+        self.messages.clear()
+
+        game._show_result(2, 0, 0, 0, 2)
+
+        penalty_message = self.messages[-1]
+        self.assertIn("힌트 감점 0점", penalty_message)
+        self.assertIn("요청 20점", penalty_message)
+        self.assertIn("0점 하한", penalty_message)
 
     def test_play_rolls_back_score_when_save_fails(self) -> None:
         game = self.make_game(["1", "n", "1"])
@@ -435,12 +498,13 @@ class QuizGameTest(unittest.TestCase):
         game.state_path = self.state_path.with_name(os.fsdecode(raw_name))
 
         with patch("pathlib.Path.exists", return_value=True), patch(
-            "quiz_game.shutil.copy2"
-        ) as copy:
+            "pathlib.Path.open",
+            return_value=io.BytesIO(b"corrupt"),
+        ):
             backup = game._backup_corrupt_state()
 
         self.assertIsNotNone(backup)
-        copy.assert_called_once()
+        self.assertEqual(backup.read_bytes(), b"corrupt")
 
     def test_interrupted_exit_save_failure_returns_one_on_stderr(self) -> None:
         def raise_eof(_: str) -> str:
@@ -494,15 +558,22 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(standard_output.getvalue(), "")
         self.assertIn("읽기 실패", standard_error.getvalue())
 
-    def test_startup_interrupt_exits_without_traceback(self) -> None:
-        captured = io.StringIO()
-        with patch("main.QuizGame", side_effect=KeyboardInterrupt), patch(
-            "sys.stdout", captured
-        ):
+    def test_startup_interrupt_fails_without_state(self) -> None:
+        captured_error = io.StringIO()
+        with patch.object(
+            application,
+            "resolve_state_path",
+            return_value=self.state_path,
+        ), patch.object(
+            QuizGame,
+            "save_state",
+            side_effect=KeyboardInterrupt,
+        ), patch("sys.stderr", captured_error):
             result = application.main()
 
-        self.assertEqual(result, 0)
-        self.assertIn("안전하게 종료", captured.getvalue())
+        self.assertEqual(result, 1)
+        self.assertFalse(self.state_path.exists())
+        self.assertIn("저장을 확인하지 못했습니다", captured_error.getvalue())
 
 
 if __name__ == "__main__":

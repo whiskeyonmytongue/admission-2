@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,8 +27,25 @@ def fail(message: str, pending: bool = False) -> int:
 
 def repository_name(remote: str) -> str | None:
     """GitHub 원격 URL에서 owner/repository 이름을 추출한다."""
-    match = re.search(r"github\.com[/:]([^/]+/[^/]+?)(?:\.git)?$", remote)
-    return match.group(1) if match else None
+    scp_match = re.fullmatch(
+        r"git@github\.com:([^/]+/[^/]+?)(?:\.git)?",
+        remote,
+    )
+    if scp_match:
+        return scp_match.group(1)
+
+    parsed = urlparse(remote)
+    if (
+        parsed.scheme not in {"https", "ssh"}
+        or parsed.hostname != "github.com"
+        or parsed.query
+        or parsed.fragment
+    ):
+        return None
+    if parsed.scheme == "ssh" and parsed.username not in {None, "git"}:
+        return None
+    parts = parsed.path.removesuffix(".git").strip("/").split("/")
+    return "/".join(parts) if len(parts) == 2 and all(parts) else None
 
 
 def _repository_metadata(repository: str) -> dict:
@@ -42,6 +60,21 @@ def _repository_metadata(repository: str) -> dict:
             "visibility,defaultBranchRef",
         )
     )
+
+
+def _metadata_fields(metadata: object) -> tuple[object, object]:
+    """검증된 메타데이터에서 공개 여부와 기본 브랜치를 반환한다."""
+    if not isinstance(metadata, dict):
+        raise ValueError("GitHub 메타데이터가 객체 형식이 아닙니다.")
+    branch_metadata = metadata.get("defaultBranchRef")
+    if branch_metadata is not None and not isinstance(branch_metadata, dict):
+        raise ValueError("defaultBranchRef가 객체 형식이 아닙니다.")
+    default_branch = (
+        branch_metadata.get("name")
+        if isinstance(branch_metadata, dict)
+        else None
+    )
+    return metadata.get("visibility"), default_branch
 
 
 def main() -> int:
@@ -80,10 +113,13 @@ def main() -> int:
     ) as error:
         return fail(f"GitHub 메타데이터를 확인하지 못했습니다: {error}")
 
-    default_branch = (metadata.get("defaultBranchRef") or {}).get("name")
-    if metadata.get("visibility") != "PUBLIC" or default_branch != "main":
+    try:
+        visibility, default_branch = _metadata_fields(metadata)
+    except ValueError as error:
+        return fail(str(error))
+    if visibility != "PUBLIC" or default_branch != "main":
         return fail(
-            f"PUBLIC/main이 아닙니다: {metadata.get('visibility')}/{default_branch}"
+            f"PUBLIC/main이 아닙니다: {visibility}/{default_branch}"
         )
 
     print(f"PUBLIC/main 및 HEAD {local_head[:7]} 일치: PASS")

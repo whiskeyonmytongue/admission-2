@@ -22,8 +22,11 @@ def main() -> int:
     try:
         return QuizGame(state_path=resolve_state_path()).run()
     except (EOFError, KeyboardInterrupt):
-        print("\n⚠️ 시작 중 입력이 중단되어 안전하게 종료합니다.")
-        return 0
+        print(
+            "\n⚠️ 시작 중 작업이 중단되어 상태 저장을 확인하지 못했습니다.",
+            file=sys.stderr,
+        )
+        return 1
     except StateAccessError as error:
         print(f"⚠️ {error}", file=sys.stderr)
         return 1
