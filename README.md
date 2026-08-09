@@ -33,6 +33,9 @@ python3 main.py
 뒤 traceback 없이 종료합니다. 저장에 실패해 종료할 수 없는 경우에는 진단을
 표준 오류(`stderr`)로 출력하고 종료 코드 `1`을 반환합니다.
 
+임시 파일을 만드는 짧은 구간의 `Ctrl+C` 원자성은 `pthread_sigmask`를 제공하는
+macOS와 Linux에서 보장합니다. Windows는 이 과제의 검증 환경에 포함하지 않습니다.
+
 `main.py`를 다른 디렉터리에서 실행해도 기본 저장 위치는 항상 이 프로젝트의
 `state.json`입니다. 별도 상태가 필요하면 `QUIZ_STATE_PATH` 환경 변수로 경로를
 바꿀 수 있습니다.
@@ -124,7 +127,7 @@ JSON은 사람이 읽을 수 있고 Python의 `dict`와 `list`를 그대로 표�
 ├── state.json                 # 퀴즈·점수·히스토리
 ├── tests/                     # unittest 자동 테스트
 ├── scripts/                   # 스타일·Git·원격 검증 스크립트
-├── .github/workflows/         # Python 3.10·3.13 실제 검증
+├── .github/workflows/         # Python 3.10 실제 검증
 ├── docs/evidence/             # 실제 실행 로그와 화면
 ├── Makefile                   # 반복 가능한 검증 명령
 └── README.md
@@ -139,20 +142,21 @@ make git
 make syntax
 make style
 make test
-make verify
+make verify PYTHON=python3.10
 ```
 
 `make env`는 실행 환경, `make demo`는 핵심 기능 전체, `make git`은 브랜치·병합
-이력을 보여 줍니다. `make verify`는 Python 3.10 문법, 스타일, 47개 단위 테스트,
-임시 상태를 이용한 CLI 안전 종료를 차례로 확인합니다. 시연과 테스트는
+이력을 보여 줍니다. `make verify`는 정확히 Python 3.10에서만 실행되며 문법,
+스타일, 단위 테스트, 임시 상태를 이용한 CLI 안전 종료를 차례로 확인합니다.
+시연과 테스트는
 `tempfile` 아래의 상태만 사용하므로 제출용 `state.json`을 변경하지 않습니다.
 
 스타일 검사는 외부 패키지 없이 `ast`, `tokenize`, `pathlib` 등 표준 라이브러리만
 사용합니다. UTF-8, LF, 마지막 개행, 줄 끝 공백, 4칸 들여쓰기, 코드 79자,
 주석·docstring 72자, 공개 API docstring, Python 3.10 AST 문법, 현재 Python의
-컴파일 문맥과 함수 50줄 제한을 검사합니다. 최소 버전의 실제 실행은 GitHub
-Actions의 Python 3.10 환경에서 다시 확인합니다. 위반하면 `파일:줄` 형식으로
-원인을 출력하고 실패합니다.
+컴파일 문맥과 함수 50줄 제한을 검사합니다. 로컬과 GitHub Actions 모두 Python
+3.10을 사용하므로 AST와 실제 컴파일 기준이 일치합니다. 위반하면 `파일:줄`
+형식으로 원인을 출력하고 실패합니다.
 
 원격 작업까지 끝난 뒤에는 다음 명령으로 Git 요구사항과 공개 저장소 상태를
 확인할 수 있습니다.

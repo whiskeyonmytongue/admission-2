@@ -340,7 +340,7 @@ class QuizGame:
             return None
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         name_digest = hashlib.sha256(
-            self.state_path.name.encode("utf-8")
+            os.fsencode(self.state_path.name)
         ).hexdigest()[:12]
         backup = self.state_path.parent / (
             f".quiz-corrupt-{name_digest}-{timestamp}.bak"

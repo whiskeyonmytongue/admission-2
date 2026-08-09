@@ -429,6 +429,19 @@ class QuizGameTest(unittest.TestCase):
         )
         json.loads(long_path.read_text(encoding="utf-8"))
 
+    def test_surrogateescape_basename_can_build_backup_path(self) -> None:
+        raw_name = b"state-\xff.json"
+        game = self.make_game()
+        game.state_path = self.state_path.with_name(os.fsdecode(raw_name))
+
+        with patch("pathlib.Path.exists", return_value=True), patch(
+            "quiz_game.shutil.copy2"
+        ) as copy:
+            backup = game._backup_corrupt_state()
+
+        self.assertIsNotNone(backup)
+        copy.assert_called_once()
+
     def test_interrupted_exit_save_failure_returns_one_on_stderr(self) -> None:
         def raise_eof(_: str) -> str:
             raise EOFError

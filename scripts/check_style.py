@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import os
 import subprocess
 import sys
 import tokenize
@@ -33,10 +34,13 @@ def source_paths() -> List[Path]:
                 "Makefile",
             ],
             cwd=ROOT,
-            text=True,
             stderr=subprocess.DEVNULL,
         )
-        paths = [ROOT / item for item in output.split("\0") if item]
+        paths = [
+            ROOT / os.fsdecode(item)
+            for item in output.split(b"\0")
+            if item
+        ]
     except (OSError, subprocess.CalledProcessError):
         paths = list(ROOT.glob("*.py"))
         paths.extend((ROOT / "scripts").rglob("*.py"))

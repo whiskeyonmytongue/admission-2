@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: help env demo git run syntax style test lint cli-smoke verify
+.PHONY: help env demo git run runtime syntax style test lint cli-smoke verify
 .PHONY: verify-git verify-remote
 
 help:
@@ -8,6 +8,7 @@ help:
 	@echo "make demo          # 임시 상태에서 전체 기능 시연"
 	@echo "make git           # 브랜치·병합 그래프 확인"
 	@echo "make run           # 퀴즈 게임 실행"
+	@echo "make runtime       # 정확한 검증 버전(Python 3.10) 확인"
 	@echo "make syntax        # 현재 Python 문법·컴파일 검증"
 	@echo "make style         # PEP 8·257·Python 3.10 AST 검증"
 	@echo "make test          # 전체 단위 테스트 실행"
@@ -33,10 +34,13 @@ git:
 run:
 	$(PYTHON) main.py
 
+runtime:
+	@$(PYTHON) scripts/check_runtime.py
+
 syntax:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m py_compile \
 		main.py quiz.py default_quizzes.py quiz_game.py \
-		scripts/check_style.py scripts/run_demo.py \
+		scripts/check_runtime.py scripts/check_style.py scripts/run_demo.py \
 		scripts/verify_git.py scripts/verify_remote.py \
 		tests/test_quiz.py tests/test_quiz_game.py tests/test_style.py
 
@@ -55,7 +59,7 @@ cli-smoke:
 		PYTHONDONTWRITEBYTECODE=1 $(PYTHON) main.py >/dev/null
 	@echo "CLI 안전 종료: PASS"
 
-verify: syntax style test cli-smoke
+verify: runtime syntax style test cli-smoke
 	@echo "로컬 기능 검증: PASS"
 
 verify-git:

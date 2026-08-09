@@ -1,14 +1,15 @@
-$ make verify
-PYTHONDONTWRITEBYTECODE=1 python3 -m py_compile \
+$ make verify PYTHON=python3.10
+Runtime check: PASS (Python 3.10)
+PYTHONDONTWRITEBYTECODE=1 python3.10 -m py_compile \
     main.py quiz.py default_quizzes.py quiz_game.py \
-    scripts/check_style.py scripts/run_demo.py \
+    scripts/check_runtime.py scripts/check_style.py scripts/run_demo.py \
     scripts/verify_git.py scripts/verify_remote.py \
     tests/test_quiz.py tests/test_quiz_game.py tests/test_style.py
-PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_style.py
-Style check: PASS (13 files, Python 3.10+)
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+PYTHONDONTWRITEBYTECODE=1 python3.10 scripts/check_style.py
+Style check: PASS (14 files, Python 3.10+)
+PYTHONDONTWRITEBYTECODE=1 python3.10 -m unittest discover -s tests -v
 ...
-Ran 47 tests in 0.027s
+Ran 50 tests in 0.025s
 
 OK
 CLI 안전 종료: PASS
@@ -16,28 +17,13 @@ CLI 안전 종료: PASS
 
 $ make verify-git
 python3 scripts/verify_git.py
-커밋 27개, no-ff 병합, clone/push/pull 증거: PASS
+커밋 28개, no-ff 병합, clone/push/pull 증거: PASS
 
-$ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-    -e QUIZ_STATE_PATH=/tmp/quiz-state.json \
-    -v "$PWD:/work:ro" -w /work python:3.10-slim sh -c \
-    'python --version && \
-     python -m py_compile main.py quiz.py default_quizzes.py \
-       quiz_game.py scripts/check_style.py scripts/run_demo.py \
-       scripts/verify_git.py scripts/verify_remote.py \
-       tests/test_quiz.py tests/test_quiz_game.py \
-       tests/test_style.py && \
-     python scripts/check_style.py && \
-     python -m unittest discover -s tests -v && \
-     printf "6\n" | python main.py >/tmp/cli-output && \
-     grep -q "종료" /tmp/cli-output && \
-     echo "[PASS] Python 3.10 CLI 안전 종료"'
-[컨테이너 출력 요약]
-Python 3.10.20
-Style check: PASS (13 files, Python 3.10+)
-Ran 47 tests in 0.129s
-OK
-[PASS] Python 3.10 CLI 안전 종료
+$ make verify
+Runtime check: FAIL - make verify는 Python 3.10이 필요합니다. 현재 버전: 3.13
+make: *** [runtime] Error 1
+
+위 실패는 검증 버전 guard가 현재 Python 3.13을 의도대로 거부한 결과다.
 
 [이번 로컬 보강 전 원격 검증 기록]
 PUBLIC/main 및 HEAD 5c664a2 일치: PASS
