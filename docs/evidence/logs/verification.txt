@@ -8,7 +8,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_style.py
 Style check: PASS (13 files, Python 3.10+)
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 ...
-Ran 42 tests in 0.020s
+Ran 46 tests in 0.025s
 
 OK
 CLI 안전 종료: PASS
@@ -16,7 +16,7 @@ CLI 안전 종료: PASS
 
 $ make verify-git
 python3 scripts/verify_git.py
-커밋 25개, no-ff 병합, clone/push/pull 증거: PASS
+커밋 26개, no-ff 병합, clone/push/pull 증거: PASS
 
 [이번 로컬 보강 전 원격 검증 기록]
 PUBLIC/main 및 HEAD 5c664a2 일치: PASS

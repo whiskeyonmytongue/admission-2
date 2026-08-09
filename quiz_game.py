@@ -10,10 +10,26 @@ import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TextIO
 
 from default_quizzes import create_default_quizzes
 from quiz import Quiz
+
+
+TEMPORARY_FILE_ATTEMPTS = 10
+
+
+def _owner_only_opener(path: str, flags: int) -> int:
+    return os.open(path, flags, 0o600)
+
+
+def _open_owner_only(path: Path) -> TextIO:
+    return open(
+        path,
+        "x",
+        encoding="utf-8",
+        opener=_owner_only_opener,
+    )
 
 
 class StateAccessError(RuntimeError):
@@ -260,13 +276,19 @@ class QuizGame:
         temporary_path: Optional[Path] = None
         try:
             self.state_path.parent.mkdir(parents=True, exist_ok=True)
-            temporary_path = self.state_path.with_name(
-                f".{self.state_path.name}.{secrets.token_hex(16)}.tmp"
-            )
-            with temporary_path.open(
-                "x",
-                encoding="utf-8",
-            ) as temporary_file:
+            for _ in range(TEMPORARY_FILE_ATTEMPTS):
+                temporary_path = self.state_path.with_name(
+                    f".quiz-state-{secrets.token_hex(16)}.tmp"
+                )
+                try:
+                    temporary_file = _open_owner_only(temporary_path)
+                except FileExistsError:
+                    temporary_path = None
+                    continue
+                break
+            else:
+                raise OSError("안전한 임시 파일 이름을 만들지 못했습니다.")
+            with temporary_file:
                 json.dump(
                     self.state_dict(),
                     temporary_file,

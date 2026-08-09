@@ -320,7 +320,7 @@ class QuizGameTest(unittest.TestCase):
 
     def test_interrupt_during_replace_removes_temporary_file(self) -> None:
         game = self.make_game(["6"])
-        temporary_pattern = f".{self.state_path.name}.*.tmp"
+        temporary_pattern = ".quiz-state-*.tmp"
 
         with patch(
             "quiz_game.os.replace",
@@ -340,21 +340,59 @@ class QuizGameTest(unittest.TestCase):
         original_open = Path.open
         interrupted = False
 
-        def interrupt_after_open(path, *args, **kwargs):
+        def interrupt_after_open(path):
             nonlocal interrupted
-            temporary_file = original_open(path, *args, **kwargs)
-            if path.suffix == ".tmp" and not interrupted:
+            temporary_file = original_open(path, "x", encoding="utf-8")
+            if not interrupted:
                 interrupted = True
                 temporary_file.close()
                 raise KeyboardInterrupt
             return temporary_file
 
-        with patch("quiz_game.Path.open", new=interrupt_after_open):
+        with patch(
+            "quiz_game._open_owner_only",
+            side_effect=interrupt_after_open,
+        ):
             result = game.run()
 
         self.assertEqual(result, 0)
         self.assertTrue(interrupted)
         self.assertEqual(list(self.state_path.parent.glob(".*.tmp")), [])
+
+    def test_temporary_collision_retries_without_deleting_owner(self) -> None:
+        game = self.make_game()
+        collision = self.state_path.with_name(".quiz-state-fixed.tmp")
+        collision.write_text("foreign", encoding="utf-8")
+
+        with patch(
+            "quiz_game.secrets.token_hex",
+            side_effect=["fixed", "fresh"],
+        ):
+            self.assertTrue(game.save_state())
+
+        self.assertEqual(collision.read_text(encoding="utf-8"), "foreign")
+
+    def test_saved_state_is_owner_only_even_with_open_umask(self) -> None:
+        game = self.make_game()
+        previous_umask = os.umask(0)
+        try:
+            self.assertTrue(game.save_state())
+        finally:
+            os.umask(previous_umask)
+
+        self.assertEqual(self.state_path.stat().st_mode & 0o777, 0o600)
+
+    def test_long_state_basename_still_saves(self) -> None:
+        long_path = self.state_path.with_name("s" * 220)
+
+        QuizGame(
+            state_path=long_path,
+            input_fn=lambda _: "6",
+            output_fn=self.messages.append,
+            error_fn=self.errors.append,
+        )
+
+        self.assertTrue(long_path.exists())
 
     def test_interrupted_exit_save_failure_returns_one_on_stderr(self) -> None:
         def raise_eof(_: str) -> str:
