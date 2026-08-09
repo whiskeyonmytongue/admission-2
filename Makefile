@@ -1,10 +1,16 @@
 PYTHON ?= python3
 MKTEMP ?= mktemp
+UV ?= uv
+VENV ?= .venv
+VENV_PYTHON ?= $(VENV)/bin/python
 
-.PHONY: help env demo git run runtime syntax style test lint cli-smoke verify
+.PHONY: help setup verify-venv env demo git run runtime syntax style test lint
+.PHONY: cli-smoke verify
 .PHONY: verify-git verify-remote
 
 help:
+	@echo "make setup         # uv로 Python 3.10 가상환경 구성"
+	@echo "make verify-venv   # 가상환경에서 전체 검증"
 	@echo "make env           # Python·Git·현재 브랜치 확인"
 	@echo "make demo          # 임시 상태에서 전체 기능 시연"
 	@echo "make git           # 브랜치·병합 그래프 확인"
@@ -16,6 +22,25 @@ help:
 	@echo "make verify        # 문법, 스타일, 테스트, CLI 검증"
 	@echo "make verify-git    # 커밋, 병합, clone/pull 증거 검증"
 	@echo "make verify-remote # 공개 main과 로컬 HEAD 일치 검증"
+
+setup:
+	@command -v $(UV) >/dev/null 2>&1 || { \
+		echo "uv가 필요합니다: https://docs.astral.sh/uv/getting-started/installation/" >&2; \
+		exit 1; \
+	}
+	@if [ -d "$(VENV)" ] && [ ! -x "$(VENV_PYTHON)" ]; then \
+		echo "$(VENV)에 완전한 가상환경이 없습니다. 디렉터리를 확인한 뒤 다시 실행하세요." >&2; \
+		exit 1; \
+	fi
+	@$(UV) python install 3.10
+	@if [ ! -x "$(VENV_PYTHON)" ]; then \
+		$(UV) venv --managed-python --python 3.10 "$(VENV)"; \
+	fi
+	@$(VENV_PYTHON) scripts/check_runtime.py
+	@echo "가상환경 준비: PASS ($(VENV_PYTHON))"
+
+verify-venv: setup
+	@$(MAKE) verify PYTHON="$(VENV_PYTHON)"
 
 env:
 	@echo "=== admission-2 개발 환경 ==="

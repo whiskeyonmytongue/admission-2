@@ -14,6 +14,53 @@
 
 Python 3.10 이상과 Git만 준비하면 됩니다. 외부 패키지는 필요하지 않습니다.
 
+### Python 3.10이 없는 환경
+
+`venv`는 이미 설치된 Python으로 가상환경을 만들기 때문에 Python 3.10 자체가
+없다면 먼저 해당 버전을 준비해야 합니다. 이 저장소는 `uv`를 이용해 Python
+3.10과 `.venv`를 한 번에 구성할 수 있습니다.
+
+macOS에서는 Homebrew로 `uv`를 설치할 수 있습니다.
+
+```bash
+brew install uv
+```
+
+macOS 또는 Linux에서 Homebrew를 사용하지 않는다면 공식 설치 스크립트를
+사용합니다.
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+저장소를 내려받은 뒤 가상환경을 만들고 전체 검증을 실행합니다.
+
+```bash
+git clone https://github.com/whiskeyonmytongue/admission-2.git
+cd admission-2
+make setup
+make verify-venv
+```
+
+`make setup`은 최신 Python 3.10 패치 버전을 내려받아 `.venv`를 만듭니다.
+`make verify-venv`는 가상환경을 직접 활성화하지 않아도 `.venv/bin/python`으로
+전체 검증을 실행합니다.
+
+프로그램을 직접 실행하려면 가상환경을 활성화합니다.
+
+```bash
+source .venv/bin/activate
+python main.py
+deactivate
+```
+
+`uv` 설치 방법은 [공식 설치 문서](https://docs.astral.sh/uv/getting-started/installation/)에서,
+Python 버전 관리 방식은 [공식 Python 관리 문서](https://docs.astral.sh/uv/guides/install-python/)에서
+확인할 수 있습니다.
+
+### Python 3.10이 이미 있는 환경
+
 ```bash
 git clone https://github.com/whiskeyonmytongue/admission-2.git
 cd admission-2
@@ -160,6 +207,8 @@ Python 3.10 확인을 시작으로 전체 Python 파일의 문법과 스타일 �
 
 | 명령 | 확인 내용 |
 |---|---|
+| `make setup` | `uv`로 Python 3.10과 `.venv` 구성 |
+| `make verify-venv` | `.venv`의 Python 3.10으로 전체 검증 |
 | `make env` | Python·Git 버전과 현재 브랜치 확인 |
 | `make demo` | 추가·목록·풀이·점수 흐름을 한 번에 재현 |
 | `make git` | 브랜치와 병합 그래프 출력 |
