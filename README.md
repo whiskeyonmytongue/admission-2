@@ -2,17 +2,17 @@
 
 [![verify](https://github.com/whiskeyonmytongue/admission-2/actions/workflows/verify.yml/badge.svg)](https://github.com/whiskeyonmytongue/admission-2/actions/workflows/verify.yml)
 
-터미널에서 퀴즈를 등록하고 풀 수 있는 Python 콘솔 프로그램입니다. 프로그램을
-종료해도 퀴즈, 최고 점수와 플레이 기록이 프로젝트 루트의 `state.json`에
-남습니다.
+터미널에서 퀴즈를 등록하고 푸는 Python 콘솔 프로그램입니다. 프로그램을
+종료한 뒤에도 퀴즈와 최고 점수, 플레이 기록은 프로젝트 루트의 `state.json`에
+남아 있습니다.
 
-퀴즈 주제는 **Python 기초 문법**입니다. 자료형, 조건문, 반복문, 함수와
-딕셔너리를 문제로 만들면 프로그램을 구현하는 과정과 개념 복습을 자연스럽게
-연결할 수 있어 이 주제를 선택했습니다.
+퀴즈 주제는 **Python 기초 문법**입니다. 프로그램을 만들며 사용한 자료형,
+조건문, 반복문, 함수와 딕셔너리를 곧바로 문제로 복습하기 좋아 이 주제를
+선택했습니다.
 
-## 바로 실행하기
+## 실행 방법
 
-Python 3.10 이상과 Git만 있으면 됩니다. 외부 패키지는 사용하지 않습니다.
+Python 3.10 이상과 Git만 준비하면 됩니다. 외부 패키지는 필요하지 않습니다.
 
 ```bash
 git clone https://github.com/whiskeyonmytongue/admission-2.git
@@ -20,7 +20,7 @@ cd admission-2
 python3 main.py
 ```
 
-실행 후 `1`부터 `6`까지 원하는 기능을 선택합니다.
+프로그램을 실행하면 `1`부터 `6`까지 원하는 기능을 고릅니다.
 
 ```text
 1. 퀴즈 풀기
@@ -31,42 +31,42 @@ python3 main.py
 6. 종료
 ```
 
-숫자 앞뒤의 공백은 자동으로 제거합니다. 빈 값, 문자, 허용 범위를 벗어난
-숫자를 입력하면 이유를 알려 주고 다시 입력받습니다. `Ctrl+C`나 EOF가
-발생해도 가능한 상태를 저장한 뒤 traceback 없이 종료합니다.
+숫자 앞뒤의 공백은 자동으로 지웁니다. 빈 값이나 문자, 허용 범위를 벗어난
+숫자가 들어오면 오류 원인을 보여 주고 다시 입력받습니다. `Ctrl+C`나 EOF가
+발생하면 가능한 상태까지 저장하고 traceback 없이 종료합니다.
 
-## 구현 결과
+## 구현한 기능
 
 ### 필수 기능
 
 | 기능 | 구현 내용 | 확인 위치 |
 |---|---|---|
-| 기본 퀴즈 | 직접 작성한 Python 기초 문제 5개 | `default_quizzes.py`, `state.json` |
-| 퀴즈 풀기 | 출제, 1~4 입력 검증, 정답 판정, 결과 출력 | `QuizGame.play_quiz()` |
-| 퀴즈 관리 | 추가, 목록 조회, 삭제 후 즉시 저장 | `add_quiz()`, `list_quizzes()`, `delete_quiz()` |
-| 점수 | 최고 점수와 정답 수 저장·조회 | `show_score()` |
-| 파일 복구 | 파일 없음은 기본값 생성, 손상 파일은 백업 후 복구 | `load_state()` |
-| 안전 저장 | 임시 파일 기록 후 `os.replace()`로 원자 교체 | `save_state()` |
-| 입력 안전성 | 중복 JSON 키와 출력에 위험한 문구·시각 형식 거부 | `load_state()`, `Quiz` |
+| 기본 퀴즈 | 직접 만든 Python 기초 문제 5개 제공 | `default_quizzes.py`, `state.json` |
+| 퀴즈 풀기 | 문제 출제, 1~4 범위 입력 검사, 정답 판정과 결과 안내 | `QuizGame.play_quiz()` |
+| 퀴즈 관리 | 문제를 추가·조회·삭제하고 변경 즉시 저장 | `add_quiz()`, `list_quizzes()`, `delete_quiz()` |
+| 점수 | 최고 점수와 정답 수를 저장해 다시 조회 | `show_score()` |
+| 파일 복구 | 파일이 없으면 기본값 생성, 손상됐으면 백업 후 복구 | `load_state()` |
+| 안전 저장 | 임시 파일에 먼저 기록하고 `os.replace()`로 원자 교체 | `save_state()` |
+| 입력 안전성 | 중복 JSON 키, 위험한 출력 문구와 시각 형식을 차단 | `load_state()`, `Quiz` |
 
 ### 보너스 기능
 
 | 기능 | 구현 내용 |
 |---|---|
-| 랜덤 출제 | `random.shuffle()`로 문제 순서 섞기 |
-| 문제 수 선택 | 전체 문제 범위에서 풀 문제 수 지정 |
-| 힌트 | 실제 힌트 한 번당 10점 감점, 빈 힌트는 감점 없음 |
-| 퀴즈 삭제 | 삭제 즉시 저장, 저장 실패 시 메모리 상태 복구 |
-| 플레이 기록 | ISO 8601 시각·문제 수·정답 수·점수 저장 |
+| 랜덤 출제 | `random.shuffle()`로 매번 문제 순서를 변경 |
+| 문제 수 선택 | 등록된 문제 중 이번에 풀 개수를 직접 지정 |
+| 힌트 | 실제로 본 힌트마다 10점 감점, 빈 힌트는 감점 제외 |
+| 퀴즈 삭제 | 삭제 직후 저장하고 저장에 실패하면 메모리 상태 복구 |
+| 플레이 기록 | ISO 8601 시각과 문제 수·정답 수·점수를 함께 저장 |
 
-## 핵심 실행 화면
+## 실행 화면
 
 ![퀴즈 추가·목록·풀이·점수 시연](docs/evidence/images/app-workflow.png)
 
-여섯 번째 문제를 추가한 뒤 한 문제를 풀었습니다. 힌트를 한 번 사용해 10점이
-차감됐고, 최종 90점과 플레이 시각이 함께 저장된 것을 확인할 수 있습니다.
-같은 시나리오를 다시 실행한 텍스트 출력은
-[기능 시연 로그](docs/evidence/logs/app-workflow.txt)에 있습니다.
+여섯 번째 문제를 추가하고 그중 한 문제를 풀었습니다. 힌트를 한 번 사용해
+10점이 차감됐으며 최종 점수 90점과 플레이 시각이 함께 저장됐습니다. 같은
+시나리오를 다시 실행한 출력은
+[기능 시연 로그](docs/evidence/logs/app-workflow.txt)에 담았습니다.
 
 ## 코드 구조와 실행 흐름
 
@@ -79,15 +79,17 @@ main.py
        └─ 변경된 상태를 state.json에 원자적으로 저장
 ```
 
-- `Quiz`는 문제 한 개의 데이터 검증, 표시 형식과 정답 판정을 담당합니다.
-- `QuizGame`은 입력 검증, 메뉴, 게임 진행과 파일 입출력을 담당합니다.
-- `calculate_score()`는 정답 수와 유효한 힌트 수로 점수를 계산합니다.
+- `Quiz`는 문제 한 개의 데이터 검증과 표시 형식, 정답 판정을 맡습니다.
+- `QuizGame`은 입력 검증과 메뉴, 게임 진행, 파일 입출력을 맡습니다.
+- `calculate_score()`는 정답 수와 실제로 사용한 힌트 수를 바탕으로 점수를
+  계산합니다.
 
-`if/elif`는 선택한 메뉴에 따라 실행할 기능을 나눕니다. `while`은 올바른
-입력을 받을 때까지 반복하고, `for`는 문제와 선택지를 차례대로 처리합니다.
-문제 형식이 바뀌면 `Quiz`, 게임 규칙이 바뀌면 `QuizGame`부터 확인하면 됩니다.
+`if/elif`는 메뉴 선택에 따라 실행할 기능을 나눕니다. `while`은 올바른 값이
+들어올 때까지 입력을 반복하고 `for`는 문제와 선택지를 차례로 처리합니다.
+문제 형식은 `Quiz`, 게임 규칙은 `QuizGame`에 모아 두어 수정할 위치도 쉽게
+찾을 수 있습니다.
 
-## `state.json` 설명
+## `state.json` 구조
 
 `state.json`은 프로젝트 루트에 저장하는 UTF-8 JSON 파일입니다.
 
@@ -115,61 +117,63 @@ main.py
 }
 ```
 
-JSON은 사람이 읽기 쉽고 Python의 `dict`와 `list`를 그대로 표현할 수 있어
-선택했습니다. 파일을 읽고 쓰는 과정에서 발생하는 오류는 `try/except`로
-처리합니다.
+JSON을 선택한 이유는 사람이 읽기 쉽고 Python의 `dict`와 `list` 구조를 그대로
+옮길 수 있기 때문입니다. 파일을 읽거나 쓸 때 생기는 오류는 `try/except`로
+처리했습니다.
 
-### 저장과 복구 정책
+### 저장·복구 방식
 
-- 파일이 없으면 기본 퀴즈 5개로 새 `state.json`을 만듭니다.
-- 파일이 손상되면 원본을 `.quiz-corrupt-<해시>-<UTC 시각>.bak`으로 보존한 뒤
-  기본 상태로 복구합니다.
-- 저장할 때는 같은 디렉터리에 임시 파일을 쓴 뒤 `os.replace()`로 교체합니다.
-- 중복 JSON 키, 터미널 제어 문자와 UTF-8로 출력할 수 없는 Unicode
-  surrogate는 거부합니다.
-- 플레이 시각은 `T` 구분자와 시간대가 있는 ISO 8601 형식만 허용합니다.
+- 파일이 없을 때는 기본 퀴즈 5개를 담은 새 `state.json`을 만듭니다.
+- 손상된 파일은 `.quiz-corrupt-<해시>-<UTC 시각>.bak`으로 원본을 보존한 다음
+  기본 상태로 되돌립니다.
+- 저장할 내용은 같은 디렉터리의 임시 파일에 먼저 쓰고 `os.replace()`로
+  교체합니다.
+- 중복 JSON 키와 터미널 제어 문자, UTF-8로 출력할 수 없는 Unicode
+  surrogate는 받지 않습니다.
+- 플레이 시각은 `T` 구분자와 시간대가 들어간 ISO 8601 형식만 받습니다.
 
-`main.py`를 다른 디렉터리에서 실행해도 기본 저장 위치는 이 프로젝트의
-`state.json`입니다. 별도 상태가 필요하면 `QUIZ_STATE_PATH` 환경 변수로
-경로를 바꿀 수 있습니다.
+`main.py`를 어느 디렉터리에서 실행하더라도 기본 저장 위치는 이 프로젝트의
+`state.json`입니다. 별도의 상태 파일을 쓰려면 `QUIZ_STATE_PATH` 환경 변수에
+경로를 지정하면 됩니다.
 
-저장에 실패해 안전하게 종료할 수 없는 경우에는 원인을 표준 오류(`stderr`)로
-출력하고 종료 코드 `1`을 반환합니다. 임시 파일 생성 구간의 `Ctrl+C` 원자성은
-`pthread_sigmask`를 제공하는 macOS와 Linux에서 보장합니다. Windows는 검증
-범위에 포함하지 않습니다.
+종료 전에 상태를 저장하지 못하면 원인을 표준 오류(`stderr`)로 출력하고 종료
+코드 `1`을 반환합니다. 임시 파일을 만드는 동안 발생한 `Ctrl+C`도
+`pthread_sigmask`를 제공하는 macOS와 Linux에서는 원자적으로 처리합니다.
+Windows는 검증 범위에서 제외했습니다.
 
-퀴즈가 수천 개로 늘어나면 매번 전체 JSON을 읽고 쓰는 비용과 동시 수정 문제가
-커집니다. 이 규모에서는 개별 레코드를 조회하고 갱신할 수 있는 SQLite 같은
-데이터베이스가 더 적합합니다.
+퀴즈가 수천 개로 늘어나면 매번 JSON 전체를 읽고 쓰는 비용이 커지고 동시 수정도
+어려워집니다. 그 정도 규모라면 개별 레코드를 조회하고 갱신하는 SQLite 같은
+데이터베이스가 더 알맞습니다.
 
 ## 자동 검증
 
-전체 검증은 다음 명령 하나로 실행합니다.
+아래 명령 하나면 전체 검증이 끝납니다.
 
 ```bash
 make verify PYTHON=python3.10
 ```
 
-이 명령은 Python 3.10 확인, 전체 Python 파일의 문법과 스타일 검사, 단위 테스트,
-임시 상태를 사용한 CLI 안전 종료를 차례대로 실행합니다. 테스트 데이터는
-`tempfile` 아래에만 만들기 때문에 제출용 `state.json`은 바뀌지 않습니다.
+Python 3.10 확인을 시작으로 전체 Python 파일의 문법과 스타일 검사, 단위
+테스트, 임시 상태를 이용한 CLI 안전 종료까지 차례로 실행됩니다. 테스트
+데이터는 `tempfile` 아래에서만 만들기 때문에 제출용 `state.json`은 바뀌지
+않습니다.
 
-추가 검증 명령은 다음과 같습니다.
+필요한 항목만 따로 검사할 때는 아래 명령을 사용합니다.
 
 | 명령 | 확인 내용 |
 |---|---|
-| `make env` | Python·Git·현재 브랜치 |
-| `make demo` | 추가·목록·풀이·점수 전체 시연 |
-| `make git` | 브랜치와 병합 그래프 |
-| `make verify-git` | 커밋·병합·clone/pull 증거 |
-| `make verify-remote` | PUBLIC/main과 로컬·원격 HEAD 일치 |
+| `make env` | Python·Git 버전과 현재 브랜치 확인 |
+| `make demo` | 추가·목록·풀이·점수 흐름을 한 번에 재현 |
+| `make git` | 브랜치와 병합 그래프 출력 |
+| `make verify-git` | 커밋·병합·clone/pull 기록 검사 |
+| `make verify-remote` | PUBLIC/main과 로컬·원격 HEAD 일치 검사 |
 
-스타일 검사는 표준 라이브러리만 사용합니다. UTF-8, LF, 마지막 개행, 줄 끝
+스타일 검사 역시 표준 라이브러리만 사용합니다. UTF-8, LF, 마지막 개행, 줄 끝
 공백, 4칸 들여쓰기, 코드 79자, 주석과 docstring 72자, 공개 API docstring,
-Python 3.10 문법과 함수 50줄 제한을 확인합니다. GitHub Actions의 공식 Action은
-검토한 커밋 SHA로 고정했습니다.
+Python 3.10 문법과 함수 50줄 제한을 검사합니다. GitHub Actions에서 쓰는 공식
+Action은 검토를 마친 커밋 SHA로 고정했습니다.
 
-## Git 작업 기록
+## Git 이력
 
 | 요구사항 | 결과 | 증거 |
 |---|---:|---|
@@ -178,13 +182,13 @@ Python 3.10 문법과 함수 50줄 제한을 확인합니다. GitHub Actions의 
 | clone과 pull 실습 | PASS | [왕복 로그](docs/evidence/logs/clone-pull.txt) |
 | 공개 저장소와 `main` | PASS | `make verify-remote` |
 
-퀴즈 풀기는 `feature/play-quiz` 브랜치에서 구현한 뒤 `git merge --no-ff`로
-`main`에 병합했습니다.
+퀴즈 풀기 기능은 `feature/play-quiz` 브랜치에서 구현하고
+`git merge --no-ff`로 `main`에 병합했습니다.
 
 ![feature 브랜치 no-ff 병합 그래프](docs/evidence/images/git-history.png)
 
-별도 디렉터리에 저장소를 clone하고 README를 수정해 push한 뒤, 최초 작업
-디렉터리에서 `git pull --ff-only`로 받아왔습니다.
+저장소를 별도 디렉터리에 clone해 README를 수정하고 push했습니다. 이후 처음
+작업하던 디렉터리에서 `git pull --ff-only`로 변경 사항을 받아왔습니다.
 
 ![clone → push → pull 결과](docs/evidence/images/clone-pull.png)
 
@@ -204,7 +208,7 @@ Python 3.10 문법과 함수 50줄 제한을 확인합니다. GitHub Actions의 
 
 </details>
 
-## 파일 구조
+## 프로젝트 구성
 
 ```text
 .
@@ -221,10 +225,10 @@ Python 3.10 문법과 함수 50줄 제한을 확인합니다. GitHub Actions의 
 └── README.md
 ```
 
-## 추가 확인 자료
+## 참고 자료
 
-개발 화면의 Python 3.13은 일상 개발 환경입니다. 최소 지원 버전과 제출 검증은
-Python 3.10에서 별도로 수행했습니다.
+화면에 보이는 Python 3.13은 평소 개발에 사용한 버전입니다. 최소 지원 버전과
+제출 검증은 Python 3.10에서 따로 진행했습니다.
 
 ![Python과 Git 개발 환경](docs/evidence/images/environment.png)
 
