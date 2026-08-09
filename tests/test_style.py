@@ -109,6 +109,19 @@ class StyleCheckerTest(unittest.TestCase):
 
         self.assertTrue(any("문법 오류" in item for item in errors))
 
+    def test_target_version_nested_async_context_fails(self) -> None:
+        path = check_style.ROOT / "probe.py"
+        source = (
+            '\"\"\"Module.\"\"\"\n\nasync def public():\n'
+            '    \"\"\"Return a nested async comprehension.\"\"\"\n'
+            "    return [[item async for item in items] for row in rows]\n"
+        )
+        errors = []
+
+        check_style.check_ast(path, source, errors)
+
+        self.assertTrue(any("문법 오류" in item for item in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

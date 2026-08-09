@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import os
 import random
+import secrets
 import shutil
 import sys
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -257,18 +257,16 @@ class QuizGame:
 
     def save_state(self) -> bool:
         """같은 디렉터리의 임시 파일을 원자적으로 교체한다."""
-        temporary_name: Optional[str] = None
+        temporary_path: Optional[Path] = None
         try:
             self.state_path.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(
-                "w",
+            temporary_path = self.state_path.with_name(
+                f".{self.state_path.name}.{secrets.token_hex(16)}.tmp"
+            )
+            with temporary_path.open(
+                "x",
                 encoding="utf-8",
-                dir=self.state_path.parent,
-                prefix=f".{self.state_path.name}.",
-                suffix=".tmp",
-                delete=False,
             ) as temporary_file:
-                temporary_name = temporary_file.name
                 json.dump(
                     self.state_dict(),
                     temporary_file,
@@ -278,15 +276,15 @@ class QuizGame:
                 temporary_file.write("\n")
                 temporary_file.flush()
                 os.fsync(temporary_file.fileno())
-            os.replace(temporary_name, self.state_path)
+            os.replace(temporary_path, self.state_path)
             return True
         except OSError as error:
             self.error(f"⚠️ 상태를 저장하지 못했습니다: {error}")
             return False
         finally:
-            if temporary_name:
+            if temporary_path is not None:
                 try:
-                    Path(temporary_name).unlink(missing_ok=True)
+                    temporary_path.unlink(missing_ok=True)
                 except OSError:
                     pass
 

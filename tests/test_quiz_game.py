@@ -335,6 +335,27 @@ class QuizGameTest(unittest.TestCase):
         )
         self.assertEqual(temporary_files, [])
 
+    def test_interrupt_during_temporary_open_removes_file(self) -> None:
+        game = self.make_game(["6"])
+        original_open = Path.open
+        interrupted = False
+
+        def interrupt_after_open(path, *args, **kwargs):
+            nonlocal interrupted
+            temporary_file = original_open(path, *args, **kwargs)
+            if path.suffix == ".tmp" and not interrupted:
+                interrupted = True
+                temporary_file.close()
+                raise KeyboardInterrupt
+            return temporary_file
+
+        with patch("quiz_game.Path.open", new=interrupt_after_open):
+            result = game.run()
+
+        self.assertEqual(result, 0)
+        self.assertTrue(interrupted)
+        self.assertEqual(list(self.state_path.parent.glob(".*.tmp")), [])
+
     def test_interrupted_exit_save_failure_returns_one_on_stderr(self) -> None:
         def raise_eof(_: str) -> str:
             raise EOFError
