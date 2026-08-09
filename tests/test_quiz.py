@@ -42,6 +42,7 @@ class QuizTest(unittest.TestCase):
             ("질문\x1b]52;c;VEVTVA==\x07", valid_choices, "힌트"),
             ("질문", ["A", "B\n위조", "C", "D"], "힌트"),
             ("질문", valid_choices, "힌트\t위조"),
+            ("질문\ud800", valid_choices, "힌트"),
         )
         for question, choices, hint in unsafe_values:
             with self.subTest(value=(question, choices, hint)):

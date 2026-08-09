@@ -182,6 +182,42 @@ class QuizGameTest(unittest.TestCase):
         self.assertEqual(self.corrupt_backup_count(), 1)
         self.assertTrue(any("중복 JSON 키" in item for item in self.messages))
 
+    def test_surrogate_quiz_text_is_backed_up_as_corrupt(self) -> None:
+        self.state_path.write_text(
+            '{"quizzes":[{"question":"\\ud800",'
+            '"choices":["A","B","C","D"],"answer":1}],'
+            '"best_score":null,"best_result":null,"history":[]}',
+            encoding="utf-8",
+        )
+
+        game = self.make_game()
+
+        self.assertEqual(len(game.quizzes), 5)
+        self.assertEqual(self.corrupt_backup_count(), 1)
+        self.assertFalse(any("\ud800" in item for item in self.messages))
+
+    def test_history_timestamp_cannot_inject_terminal_lines(self) -> None:
+        game = self.make_game()
+        game.best_score = 100
+        game.best_result = {"correct": 1, "total": 1}
+        game.history = [
+            {
+                "played_at": "2026-08-09\n00:00:00+00:00",
+                "total": 1,
+                "correct": 1,
+                "score": 100,
+                "hints_used": 0,
+            }
+        ]
+        self.assertTrue(game.save_state())
+        self.messages.clear()
+
+        restored = self.make_game()
+
+        self.assertEqual(len(restored.quizzes), 5)
+        self.assertEqual(restored.history, [])
+        self.assertEqual(self.corrupt_backup_count(), 1)
+
     def test_wrong_field_types_are_treated_as_corrupt_state(self) -> None:
         self.state_path.write_text(
             json.dumps(

@@ -6,9 +6,18 @@ import unicodedata
 from typing import Any, Dict, List
 
 
-def _reject_control_characters(label: str, value: str) -> None:
-    if any(unicodedata.category(character) == "Cc" for character in value):
-        raise ValueError("{0}에 제어 문자를 사용할 수 없습니다.".format(label))
+def reject_unsafe_text(label: str, value: str) -> None:
+    """터미널 제어 문자와 UTF-8로 출력할 수 없는 surrogate를 거부한다."""
+    unsafe_categories = {"Cc", "Cs"}
+    if any(
+        unicodedata.category(character) in unsafe_categories
+        for character in value
+    ):
+        raise ValueError(
+            "{0}에 제어 문자 또는 잘못된 Unicode를 사용할 수 없습니다.".format(
+                label
+            )
+        )
 
 
 class Quiz:
@@ -30,10 +39,10 @@ class Quiz:
             not isinstance(choice, str) for choice in choices
         ):
             raise ValueError("선택지는 문자열 배열이어야 합니다.")
-        _reject_control_characters("문제", question)
-        _reject_control_characters("힌트", hint)
+        reject_unsafe_text("문제", question)
+        reject_unsafe_text("힌트", hint)
         for choice in choices:
-            _reject_control_characters("선택지", choice)
+            reject_unsafe_text("선택지", choice)
         question = question.strip()
         choices = [choice.strip() for choice in choices]
         hint = hint.strip()

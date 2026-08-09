@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, TextIO
 
 from default_quizzes import create_default_quizzes
-from quiz import Quiz
+from quiz import Quiz, reject_unsafe_text
 
 
 TEMPORARY_FILE_ATTEMPTS = 10
@@ -322,6 +322,11 @@ class QuizGame:
         ):
             raise ValueError("history 항목 형식이 올바르지 않습니다.")
         timestamp = record["played_at"]
+        reject_unsafe_text("history의 played_at", timestamp)
+        if len(timestamp) < 11 or timestamp[10] != "T":
+            raise ValueError(
+                "history의 played_at은 T 구분자를 사용해야 합니다."
+            )
         normalized_timestamp = (
             timestamp[:-1] + "+00:00" if timestamp.endswith("Z") else timestamp
         )
