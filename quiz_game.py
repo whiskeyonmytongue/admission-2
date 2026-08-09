@@ -60,7 +60,7 @@ class QuizGame:
         self.state_path = Path(state_path)
         self.input = input_fn
         self.output = output_fn
-        self.error = error_fn or _stderr_output
+        self.error = _stderr_output if error_fn is None else error_fn
         self.rng = rng
         self.quizzes: List[Quiz] = []
         self.best_score: Optional[int] = None
@@ -78,9 +78,7 @@ class QuizGame:
     def load_state(self) -> None:
         """JSON 상태를 읽고, 없거나 손상되었으면 안전하게 복구한다."""
         if not self.state_path.exists():
-            self.output("📂 저장 파일이 없어 기본 퀴즈로 시작합니다.")
-            self.reset_to_defaults()
-            self.save_state()
+            self._initialize_default_state()
             return
 
         try:
@@ -123,6 +121,15 @@ class QuizGame:
             f"📂 저장된 데이터를 불러왔습니다. "
             f"(퀴즈 {len(self.quizzes)}개, 최고 점수 {score_text})"
         )
+
+    def _initialize_default_state(self) -> None:
+        """기본 퀴즈를 준비하고 최초 상태 파일을 필수로 저장한다."""
+        self.output("📂 저장 파일이 없어 기본 퀴즈로 시작합니다.")
+        self.reset_to_defaults()
+        if not self.save_state():
+            raise StateAccessError(
+                "기본 퀴즈를 만들었지만 상태 파일을 저장하지 못했습니다."
+            )
 
     def _apply_state(self, data: Any) -> None:
         if not isinstance(data, dict):

@@ -54,6 +54,30 @@ class QuizGameTest(unittest.TestCase):
         self.assertTrue(self.state_path.exists())
         self.assertIsNone(game.best_score)
 
+    def test_missing_state_save_failure_stops_initialization(self) -> None:
+        with patch.object(QuizGame, "save_state", return_value=False):
+            with self.assertRaisesRegex(StateAccessError, "저장하지 못했습니다"):
+                self.make_game()
+
+    def test_falsy_error_callable_is_preserved(self) -> None:
+        received = []
+
+        class FalsyErrorSink:
+            def __bool__(self) -> bool:
+                return False
+
+            def __call__(self, message: str) -> None:
+                received.append(message)
+
+        sink = FalsyErrorSink()
+        game = QuizGame(
+            state_path=self.state_path,
+            output_fn=self.messages.append,
+            error_fn=sink,
+        )
+
+        self.assertIs(game.error, sink)
+
     def test_save_and_reload_preserves_quizzes_and_score(self) -> None:
         game = self.make_game()
         game.quizzes.append(Quiz("새 문제", ["1", "2", "3", "4"], 4, "힌트"))
