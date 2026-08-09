@@ -64,9 +64,7 @@ python3 main.py
 ![퀴즈 추가·목록·풀이·점수 시연](docs/evidence/images/app-workflow.png)
 
 여섯 번째 문제를 추가하고 그중 한 문제를 풀었습니다. 힌트를 한 번 사용해
-10점이 차감됐으며 최종 점수 90점과 플레이 시각이 함께 저장됐습니다. 같은
-시나리오를 다시 실행한 출력은
-[기능 시연 로그](docs/evidence/logs/app-workflow.txt)에 담았습니다.
+10점이 차감됐으며 최종 점수 90점과 플레이 시각이 함께 저장됐습니다.
 
 ## 코드 구조와 실행 흐름
 
@@ -177,7 +175,7 @@ Action은 검토를 마친 커밋 SHA로 고정했습니다.
 
 | 요구사항 | 결과 | 증거 |
 |---|---:|---|
-| 의미 있는 커밋 10개 이상 | 33개 이상 PASS | [Git 검증 로그](docs/evidence/logs/verification.txt) |
+| 의미 있는 커밋 10개 이상 | 33개 이상 PASS | `make verify-git` |
 | 추가 브랜치 생성·병합 | no-ff 병합 PASS | `feature/play-quiz`, `61a6736` |
 | clone과 pull 실습 | PASS | [왕복 로그](docs/evidence/logs/clone-pull.txt) |
 | 공개 저장소와 `main` | PASS | `make verify-remote` |
@@ -220,7 +218,8 @@ Action은 검토를 마친 커밋 SHA로 고정했습니다.
 ├── tests/                     # unittest 자동 테스트
 ├── scripts/                   # 스타일·Git·원격 검증
 ├── .github/workflows/         # Python 3.10 CI
-├── docs/evidence/             # 실행 로그와 화면
+├── docs/evidence/images/      # 제출용 실행 화면
+├── docs/evidence/logs/        # clone·push·pull 실습 증거
 ├── Makefile                   # 반복 가능한 검증 명령
 └── README.md
 ```
@@ -231,7 +230,3 @@ Action은 검토를 마친 커밋 SHA로 고정했습니다.
 제출 검증은 Python 3.10에서 따로 진행했습니다.
 
 ![Python과 Git 개발 환경](docs/evidence/images/environment.png)
-
-- [개발 환경 로그](docs/evidence/logs/environment.txt)
-- [자동 테스트와 검증 결과](docs/evidence/logs/verification.txt)
-- [clone → commit → push → pull 로그](docs/evidence/logs/clone-pull.txt)
