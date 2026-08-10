@@ -108,7 +108,7 @@ python3 main.py
 
 ## 실행 화면
 
-![퀴즈 추가·목록·풀이·점수 시연](docs/evidence/images/app-workflow.png)
+![퀴즈 추가·목록·풀이·점수 시연](docs/evidence/images/app-workflow-terminal.png)
 
 여섯 번째 문제를 추가하고 그중 한 문제를 풀었습니다. 힌트를 한 번 사용해
 10점이 차감됐으며 최종 점수 90점과 플레이 시각이 함께 저장됐습니다.
@@ -232,12 +232,12 @@ Action은 검토를 마친 커밋 SHA로 고정했습니다.
 퀴즈 풀기 기능은 `feature/play-quiz` 브랜치에서 구현하고
 `git merge --no-ff`로 `main`에 병합했습니다.
 
-![feature 브랜치 no-ff 병합 그래프](docs/evidence/images/git-history.png)
+![feature 브랜치 no-ff 병합 그래프](docs/evidence/images/git-history-terminal.png)
 
 저장소를 별도 디렉터리에 clone해 README를 수정하고 push했습니다. 이후 처음
 작업하던 디렉터리에서 `git pull --ff-only`로 변경 사항을 받아왔습니다.
 
-![clone → push → pull 결과](docs/evidence/images/clone-pull.png)
+![clone → push → pull 결과](docs/evidence/images/clone-pull-terminal.png)
 
 <details>
 <summary>이 프로젝트에서 사용한 Git 명령</summary>
@@ -278,4 +278,4 @@ Action은 검토를 마친 커밋 SHA로 고정했습니다.
 아래 화면은 `uv`로 만든 `.venv`에서 Python 3.10과 Git 정보를 확인한 실제
 터미널 출력입니다.
 
-![Python과 Git 개발 환경](docs/evidence/images/environment.png)
+![Python과 Git 개발 환경](docs/evidence/images/environment-terminal.png)
