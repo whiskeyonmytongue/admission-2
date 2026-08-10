@@ -275,7 +275,7 @@ Action은 검토를 마친 커밋 SHA로 고정했습니다.
 
 ## 참고 자료
 
-화면에 보이는 Python 3.13은 평소 개발에 사용한 버전입니다. 최소 지원 버전과
-제출 검증은 Python 3.10에서 따로 진행했습니다.
+아래 화면은 `uv`로 만든 `.venv`에서 Python 3.10과 Git 정보를 확인한 실제
+터미널 출력입니다.
 
 ![Python과 Git 개발 환경](docs/evidence/images/environment.png)
