@@ -254,7 +254,7 @@ merge: integrate feature/play-quiz into main
 
 | 요구사항 | 결과 | 증거 |
 |---|---:|---|
-| 의미 있는 커밋 10개 이상 | 33개 이상 PASS | `make verify-git` |
+| 의미 있는 커밋 10개 이상 | 40개 이상 PASS | `make verify-git` |
 | 추가 브랜치 생성·병합 | no-ff 병합 PASS | `feature/play-quiz`, `df94a75` |
 | clone과 pull 실습 | PASS | [왕복 로그](docs/evidence/logs/clone-pull.txt) |
 | 공개 저장소와 `main` | PASS | `make verify-remote` |
@@ -280,12 +280,21 @@ main에서 feature/play-quiz 생성
 커밋 `df94a75`를 남기므로, 기능이 어느 두 커밋에서 개발됐고 언제 `main`에
 통합됐는지를 그래프에서 한눈에 확인할 수 있습니다.
 
-![feature 브랜치 no-ff 병합 그래프](docs/evidence/images/git-history-terminal.png)
+```text
+*   df94a75 merge: integrate feature/play-quiz into main
+|\
+| * 529baf6 feat: add random order, question count selection, and hint penalties
+| * 7422c29 feat: implement quiz play and scoring
+|/
+* 79e4ace feat: add menu validation and safe exit flow
+```
 
-저장소를 별도 디렉터리에 clone해 README를 수정하고 push했습니다. 이후 처음
-작업하던 디렉터리에서 `git pull --ff-only`로 변경 사항을 받아왔습니다.
+`make git`은 최근 변경부터 이 no-ff 병합까지 포함한 그래프를 출력합니다.
 
-![clone → push → pull 결과](docs/evidence/images/clone-pull-terminal.png)
+저장소를 별도 디렉터리에 clone한 뒤 이 Git 증거를 갱신해 push했습니다.
+이후 처음 작업하던 디렉터리에서 `git pull --ff-only`로 변경 사항을
+받았습니다. 실제 명령과 출력은 [clone·push·pull 로그](docs/evidence/logs/clone-pull.txt)에
+남겨 두었습니다.
 
 <details>
 <summary>이 프로젝트에서 사용한 Git 명령</summary>

@@ -55,7 +55,7 @@ demo:
 	@PYTHONPATH=. PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/run_demo.py
 
 git:
-	@git log --oneline --graph --decorate --all -18
+	@git log --oneline --graph --decorate --all --date-order --max-count=50
 
 run:
 	$(PYTHON) main.py
