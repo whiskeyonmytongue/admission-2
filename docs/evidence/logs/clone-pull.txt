@@ -1,31 +1,48 @@
 $ git clone https://github.com/whiskeyonmytongue/admission-2.git \
-    /tmp/codyssey-admission-2-clone.TRn4RT/admission-2
-Cloning into '/tmp/codyssey-admission-2-clone.TRn4RT/admission-2'...
+    /tmp/admission2-refresh.6tankY/admission-2
+Cloning into '/tmp/admission2-refresh.6tankY/admission-2'...
 
 $ git status --short --branch
 ## main...origin/main
 
-$ git add README.md
-$ git commit -m "Docs: confirm clone push and pull workflow"
-[main c45d37d] Docs: confirm clone push and pull workflow
- 1 file changed, 5 insertions(+), 1 deletion(-)
+$ git rm docs/evidence/images/clone-pull-terminal.png \
+    docs/evidence/images/git-history-terminal.png
+rm 'docs/evidence/images/clone-pull-terminal.png'
+rm 'docs/evidence/images/git-history-terminal.png'
+
+$ git commit -m "docs: refresh git workflow evidence"
+[main 22eaef8] docs: refresh git workflow evidence
+ 2 files changed, 0 insertions(+), 0 deletions(-)
 
 $ git push origin main
 To https://github.com/whiskeyonmytongue/admission-2.git
-   5a51144..c45d37d  main -> main
+   0783948..22eaef8  main -> main
+
+$ git add Makefile README.md
+$ git commit -m "docs: show current git workflow evidence"
+[main 4622f2d] docs: show current git workflow evidence
+ 2 files changed, 15 insertions(+), 6 deletions(-)
+
+$ git push origin main
+To https://github.com/whiskeyonmytongue/admission-2.git
+   22eaef8..4622f2d  main -> main
 
 $ cd /Users/yeongjae/codyssey-admission-2
 $ git pull --ff-only origin main
 From https://github.com/whiskeyonmytongue/admission-2
  * branch            main       -> FETCH_HEAD
-   5a51144..c45d37d  main       -> origin/main
-Updating 5a51144..c45d37d
+   0783948..4622f2d  main       -> origin/main
+Updating 0783948..4622f2d
 Fast-forward
- README.md | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ Makefile                                      |   2 +-
+ README.md                                     |  19 ++++++++++++++-----
+ docs/evidence/images/clone-pull-terminal.png  | Bin 110291 -> 0 bytes
+ docs/evidence/images/git-history-terminal.png | Bin 108274 -> 0 bytes
+ 4 files changed, 15 insertions(+), 6 deletions(-)
 
-$ git log -2 --oneline --decorate
-c45d37d (HEAD -> main, origin/main) Docs: confirm clone push and pull workflow
-5a51144 Fix: preserve quiz state across failure boundaries
+$ git log -3 --oneline --decorate
+4622f2d (HEAD -> main, origin/main) docs: show current git workflow evidence
+22eaef8 docs: refresh git workflow evidence
+0783948 docs: rename project and update rewritten references
 
 RESULT: PASS

@@ -1,12 +1,17 @@
 """과제에서 요구한 로컬 Git 이력과 clone/pull 증거를 검증한다."""
 
-from pathlib import Path
+import re
 import subprocess
 import sys
+from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 CLONE_LOG = ROOT / "docs" / "evidence" / "logs" / "clone-pull.txt"
+LOGGED_COMMIT = re.compile(r"^\[main ([0-9a-f]{7,40})\] (.+)$", re.MULTILINE)
+COMMIT_MESSAGE = re.compile(
+    r"^(feat|fix|test|docs|refactor|build|chore|merge): [ -~]+$"
+)
 
 
 def git(*arguments: str) -> str:
@@ -21,6 +26,27 @@ def fail(message: str, pending: bool = False) -> int:
     status = "PENDING" if pending else "FAIL"
     print(f"verify-git: {status} - {message}")
     return 1
+
+
+def validate_clone_log(log: str) -> str | None:
+    """clone 로그의 명령·커밋·메시지 증거를 검사한다."""
+    required = ("git clone", "git push", "git pull", "RESULT: PASS")
+    missing = [command for command in required if command not in log]
+    if missing:
+        return f"실습 로그에 다음 표식이 없습니다: {', '.join(missing)}"
+
+    commits = LOGGED_COMMIT.findall(log)
+    if not commits:
+        return "실습 로그에 push한 커밋 기록이 없습니다."
+
+    for commit, message in commits:
+        if not COMMIT_MESSAGE.fullmatch(message):
+            return f"로그의 커밋 메시지 규칙이 다릅니다: {message}"
+        try:
+            git("merge-base", "--is-ancestor", commit, "HEAD")
+        except (OSError, subprocess.CalledProcessError):
+            return f"로그의 커밋이 현재 main 이력에 없습니다: {commit}"
+    return None
 
 
 def main() -> int:
@@ -44,10 +70,9 @@ def main() -> int:
         return fail("clone/push/pull 실습 로그가 아직 없습니다.", pending=True)
 
     log = CLONE_LOG.read_text(encoding="utf-8")
-    required = ("git clone", "git push", "git pull", "RESULT: PASS")
-    missing = [command for command in required if command not in log]
-    if missing:
-        return fail(f"실습 로그에 다음 표식이 없습니다: {', '.join(missing)}")
+    log_error = validate_clone_log(log)
+    if log_error:
+        return fail(log_error)
 
     print(f"커밋 {count}개, no-ff 병합, clone/push/pull 증거: PASS")
     return 0
