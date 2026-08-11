@@ -242,21 +242,19 @@ Action은 검토를 마친 커밋 SHA로 고정했습니다.
 
 메시지는 `<type>: <한 줄 요약>` 형식을 사용했습니다. 제목만 읽어도 변경
 목적이 드러나도록 작성하고, `feat`, `fix`, `test`, `docs`, `refactor`,
-`build`, `chore`, `merge` 중 알맞은 type을 붙입니다. 초기 이력에는 `Feat`처럼
-첫 글자가 대문자인 기록도 있지만 의미는 같으며, 이후 메시지는 소문자로
-통일합니다.
+`build`, `chore`, `merge` 중 알맞은 type을 붙이며 소문자로 통일합니다.
 
 ```text
-Feat: Quiz 모델과 입력 데이터 검증 구현
-Test: 상태 복구 입력 경계와 보너스 동작 검증
-Docs: 실행 방법 설계 설명과 실제 증거 정리
-Merge: feature/play-quiz 퀴즈 풀이 기능 병합
+feat: Quiz 모델과 입력 데이터 검증 구현
+test: 상태 복구 입력 경계와 보너스 동작 검증
+docs: 실행 방법 설계 설명과 실제 증거 정리
+merge: feature/play-quiz 퀴즈 풀이 기능 병합
 ```
 
 | 요구사항 | 결과 | 증거 |
 |---|---:|---|
 | 의미 있는 커밋 10개 이상 | 33개 이상 PASS | `make verify-git` |
-| 추가 브랜치 생성·병합 | no-ff 병합 PASS | `feature/play-quiz`, `61a6736` |
+| 추가 브랜치 생성·병합 | no-ff 병합 PASS | `feature/play-quiz`, `eacede2` |
 | clone과 pull 실습 | PASS | [왕복 로그](docs/evidence/logs/clone-pull.txt) |
 | 공개 저장소와 `main` | PASS | `make verify-remote` |
 
@@ -266,7 +264,7 @@ Merge: feature/play-quiz 퀴즈 풀이 기능 병합
 섞이지 않도록 퀴즈 풀기 기능을 `feature/play-quiz` 브랜치에서 구현했습니다.
 브랜치에서 출제·채점 기능과 랜덤 출제·힌트 기능을 두 커밋으로 나눠 구현한 뒤
 검증하고 `main`으로 돌아와 `git merge --no-ff`로 병합했습니다. 두 기능
-커밋은 각각 `ec6cec8`, `977fc5b`입니다.
+커밋은 각각 `acc1890`, `dc5685f`입니다.
 
 ```text
 main에서 feature/play-quiz 생성
@@ -278,7 +276,7 @@ main에서 feature/play-quiz 생성
 
 병합은 별도 작업 흐름에서 완성한 변경을 `main`의 이력과 내용에 합치는
 과정입니다. `--no-ff`를 사용하면 단순히 브랜치 포인터만 이동하지 않고 병합
-커밋 `61a6736`을 남기므로, 기능이 어느 두 커밋에서 개발됐고 언제 `main`에
+커밋 `eacede2`를 남기므로, 기능이 어느 두 커밋에서 개발됐고 언제 `main`에
 통합됐는지를 그래프에서 한눈에 확인할 수 있습니다.
 
 ![feature 브랜치 no-ff 병합 그래프](docs/evidence/images/git-history-terminal.png)
