@@ -255,7 +255,7 @@ merge: integrate feature/play-quiz into main
 | 요구사항 | 결과 | 증거 |
 |---|---:|---|
 | 의미 있는 커밋 10개 이상 | 40개 이상 PASS | `make verify-git` |
-| 추가 브랜치 생성·병합 | no-ff 병합 PASS | `feature/play-quiz`, `df94a75` |
+| 추가 브랜치 생성·병합 | no-ff 병합 PASS | `feature/play-quiz`, `feat/docs-merge-trace` |
 | clone과 pull 실습 | PASS | [왕복 로그](docs/evidence/logs/clone-pull.txt) |
 | 공개 저장소와 `main` | PASS | `make verify-remote` |
 
@@ -279,6 +279,9 @@ main에서 feature/play-quiz 생성
 과정입니다. `--no-ff`를 사용하면 단순히 브랜치 포인터만 이동하지 않고 병합
 커밋 `df94a75`를 남기므로, 기능이 어느 두 커밋에서 개발됐고 언제 `main`에
 통합됐는지를 그래프에서 한눈에 확인할 수 있습니다.
+
+작은 문서 변경도 `feat/docs-merge-trace` 브랜치에서 별도로 검증한 뒤
+`main`으로 no-ff 병합해, 변경 목적과 통합 시점이 그래프에 남도록 했습니다.
 
 ```text
 *   df94a75 merge: integrate feature/play-quiz into main
